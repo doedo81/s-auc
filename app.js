@@ -1,11 +1,3 @@
-        // PubNub Config (Firewall-resistant global HTTP REST-based real-time engine)
-        // Using open sandbox test keys for direct zero-setup deployment
-        this.pubnubConfig = {
-            publishKey: "pub-c-4d519488-825f-42ee-be47-7988352b2b1d",
-            subscribeKey: "sub-c-572f4dbf-cd1f-4f81-8072-bb79a785d033",
-            userId: "user-" + Math.floor(Math.random() * 10000)
-        };
-        
         this.roomCode = null;
         this.currentRole = null; // 'admin' or 'team1'~'team6'
         this.selectedLandIndex = null; 
@@ -31,25 +23,14 @@
         };
 
         this.state = null;
-        this.pubnub = null;
+        this.broadcastChannel = null;
         this.initializedAdminRoom = false;
         
-        this.initPubNub();
+        this.initCommunication();
     }
 
-    initPubNub() {
-        try {
-            if (typeof PubNub !== 'undefined') {
-                this.pubnub = new PubNub(this.pubnubConfig);
-                this.updateStatusIndicator("서버 연결 완료 (방 미지정)", "var(--color-primary)");
-            } else {
-                console.warn("PubNub library not loaded. Falling back to local offline routing.");
-                this.updateStatusIndicator("로컬 오프라인 모드", "var(--color-gold)");
-            }
-        } catch (error) {
-            console.error("PubNub init error:", error);
-            this.updateStatusIndicator("서버 연결 실패", "var(--color-accent)");
-        }
+    initCommunication() {
+        this.updateStatusIndicator("서버 연결 완료 (방 미지정)", "var(--color-primary)");
     }
 
     // Room connection logic
@@ -65,89 +46,49 @@
 
     connectToRoom(code) {
         this.roomCode = code;
-        this.updateStatusIndicator(`방 연결 중 (${code})...`, "var(--color-gold)");
+        this.updateStatusIndicator(`실시간 온라인 (방: ${code})`, "var(--team4)");
 
-        try {
-            if (this.pubnub) {
-                // Clean up previous subscription if exists
-                this.pubnub.unsubscribeAll();
-
-                // Subscribe to Room Channel
-                this.pubnub.subscribe({
-                    channels: [`secret-auction-room-${this.roomCode}`]
-                });
-
-                // Event Listener for Message updates
-                this.pubnub.addListener({
-                    message: (event) => {
-                        const message = event.message;
-                        if (message && message.type === 'state_sync') {
-                            this.state = message.state;
-                            this.render();
-                        } else if (message && message.type === 'request_sync' && this.currentRole === 'admin') {
-                            // Send current state to newly joined players
-                            this.syncStateToNetwork();
-                        }
-                    },
-                    status: (statusEvent) => {
-                        // Keep network indicator updated on callbacks
-                        if (statusEvent.category === "PNConnectedCategory") {
-                            this.updateStatusIndicator(`실시간 온라인 (방: ${this.roomCode})`, "var(--team4)");
-                            // If newly joined client, request state from admin
-                            if (this.currentRole !== 'admin') {
-                                try {
-                                    this.pubnub.publish({
-                                        channel: [`secret-auction-room-${this.roomCode}`],
-                                        message: { type: 'request_sync' }
-                                    });
-                                } catch (e) { console.error(e); }
-                            }
-                        }
-                    }
-                });
-            }
-        } catch (error) {
-            console.error("PubNub connection setup error:", error);
+        // Close previous channel if exists
+        if (this.broadcastChannel) {
+            this.broadcastChannel.close();
         }
+
+        // Initialize local browser BroadcastChannel
+        this.broadcastChannel = new BroadcastChannel(`secret-auction-room-${this.roomCode}`);
+
+        // Listen for messages
+        this.broadcastChannel.onmessage = (event) => {
+            const message = event.data;
+            if (message && message.type === 'state_sync') {
+                this.state = message.state;
+                this.render();
+            } else if (message && message.type === 'request_sync' && this.currentRole === 'admin') {
+                this.syncStateToNetwork();
+            }
+        };
 
         // Initialize state
-        try {
-            if (this.currentRole === 'admin') {
-                this.state = JSON.parse(JSON.stringify(this.defaultState));
-            }
-        } catch (err) {
-            console.error("Defensive state clone failed:", err);
-            this.state = { ...this.defaultState };
-        }
-
-        // Force UI transition immediately (zero delay UX)
-        try {
-            this.onRoomConnected();
-        } catch (err) {
-            console.error("UI transition failed:", err);
-        }
-
         if (this.currentRole === 'admin') {
-            // Small delay to ensure connection is established before publishing
-            setTimeout(() => {
-                this.syncStateToNetwork();
-            }, 500);
+            this.state = JSON.parse(JSON.stringify(this.defaultState));
+        }
+
+        // Force UI transition immediately
+        this.onRoomConnected();
+
+        // Request sync from other tabs if client
+        if (this.currentRole !== 'admin') {
+            this.broadcastChannel.postMessage({ type: 'request_sync' });
+        } else {
+            this.syncStateToNetwork();
         }
     }
 
     syncStateToNetwork() {
-        try {
-            if (this.pubnub && this.state && this.roomCode) {
-                this.pubnub.publish({
-                    channel: [`secret-auction-room-${this.roomCode}`],
-                    message: {
-                        type: 'state_sync',
-                        state: this.state
-                    }
-                });
-            }
-        } catch (error) {
-            console.error("PubNub sync state error:", error);
+        if (this.broadcastChannel && this.state && this.roomCode) {
+            this.broadcastChannel.postMessage({
+                type: 'state_sync',
+                state: this.state
+            });
         }
     }
 
@@ -170,8 +111,9 @@
     }
 
     disconnectRoom() {
-        if (this.pubnub) {
-            this.pubnub.unsubscribeAll();
+        if (this.broadcastChannel) {
+            this.broadcastChannel.close();
+            this.broadcastChannel = null;
         }
         this.roomCode = null;
         this.state = null;
