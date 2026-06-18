@@ -519,7 +519,10 @@
 
     // UI RENDER ENGINE
     render() {
-        if (!this.state) return;
+        if (!this.state) {
+            // Defensive Fallback State to prevent UI crash when network state is loading
+            this.state = JSON.parse(JSON.stringify(this.defaultState));
+        }
         
         const { phase, round, teams, bids, bingoBoard, aiComment, targetLand } = this.state;
         const currentBids = bids || {};
