@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 더 지니어스: 비밀 경매 빙고</title>
+    <!-- Google Fonts: Inter & Orbitron for futuristic/genius style -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- PubNub SDK for Real-time Firewall-resistant Messaging -->
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.2.2.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="stars-overlay"></div>
+    <div class="container">
+        
+        <!-- HEADER -->
+        <header class="game-header">
+            <h1 class="logo">THE GENIUS <span class="accent">SECRET AUCTION</span></h1>
+            <div id="connection-status" class="status-badge">서버 연결 중...</div>
+        </header>
+
+        <!-- 1. GATE SCREEN (로그인 및 역할 선택) -->
+        <section id="screen-gate" class="screen active">
+            <div class="glass-card gate-card">
+                <h2>게임 모드 선택</h2>
+                
+                <!-- 방 코드 섹션 -->
+                <div class="room-setup-box" style="margin-bottom: 25px; padding: 16px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(255, 255, 255, 0.02);">
+                    <div id="room-code-input-area">
+                        <p class="subtitle" style="margin-bottom: 12px;">교실에서 발급한 4자리 방 번호를 입력해 주세요.</p>
+                        <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 10px;">
+                            <input type="text" id="input-room-code" maxlength="4" placeholder="방 번호 4자리" 
+                                   style="width: 160px; text-align: center; font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 700; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; padding: 8px; outline: none;">
+                            <button class="btn btn-outline btn-sm" onclick="app.joinRoomByCode()">확인</button>
+                        </div>
+                    </div>
+                    <div id="room-code-status-area" style="display: none; color: var(--color-primary); font-weight: bold; font-size: 1.1rem; font-family: 'Orbitron', sans-serif;">
+                        CONNECTED ROOM: <span id="active-room-code-display" style="color: var(--color-gold);">----</span>
+                        <button class="btn btn-sm btn-outline" style="margin-left: 10px; padding: 3px 8px; font-size: 0.65rem;" onclick="app.disconnectRoom()">방 나가기</button>
+                    </div>
+                </div>
+
+                <!-- 사회자 방 만들기 버튼 (방 입력과 무관하게 언제나 클릭 가능하도록 잠금 영역 바깥으로 배치) -->
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary btn-large btn-block" onclick="app.selectRole('admin')">
+                        <span class="icon">👑</span> 사회자 / 관리자 화면 (방 만들기)
+                    </button>
+                </div>
+
+                <div class="gate-options" id="gate-main-options" style="pointer-events: none; opacity: 0.3;">
+                    <div class="divider"><span>또는 모둠 선택</span></div>
+                    <div class="team-grid">
+                        <button class="btn btn-team" onclick="app.selectRole('team1')">1조</button>
+                        <button class="btn btn-team" onclick="app.selectRole('team2')">2조</button>
+                        <button class="btn btn-team" onclick="app.selectRole('team3')">3조</button>
+                        <button class="btn btn-team" onclick="app.selectRole('team4')">4조</button>
+                        <button class="btn btn-team" onclick="app.selectRole('team5')">5조</button>
+                        <button class="btn btn-team" onclick="app.selectRole('team6')">6조</button>
+                    </div>
+                </div>
+                
+                <p id="gate-instruction-text" style="color: var(--color-accent); font-size: 0.85rem; margin-top: 15px;">※ 먼저 방 번호를 입력하여 연결하거나, 위 사회자 버튼으로 방을 생성해 주세요.</p>
+            </div>
+        </section>
+
+        <!-- 2. ADMIN SCREEN (사회자/교사용 화면) -->
+        <section id="screen-admin" class="screen">
+            <div class="admin-layout">
+                
+                <!-- 왼쪽: 현황판 & 제어판 -->
+                <div class="admin-sidebar">
+                    <!-- 게임 진행 상태 제어 -->
+                    <div class="glass-card control-card">
+                        <div class="card-header" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                                <span class="badge">ROUND <span id="admin-round-num">1</span></span>
+                                <span class="badge badge-ai" id="admin-room-badge" style="background: var(--color-gold); color: #000;">ROOM: ----</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; margin-top: 5px;">
+                                <h3>경매 통제실</h3>
+                                <button class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.65rem;" onclick="app.exitToGate()">대기실로</button>
+                            </div>
+                        </div>
+                        <div class="control-actions">
+                            <div class="round-status-box">
+                                <span class="label">입찰 상태</span>
+                                <span id="bid-status-summary" class="value text-warning">대기 중 (0 / 6)</span>
+                            </div>
+                            <div class="round-status-box" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span class="label">현재 경매 대상 땅</span>
+                                    <span id="admin-target-land-display" class="value text-warning" style="color: var(--color-gold); font-size: 1.2rem;">1번 땅</span>
+                                </div>
+                                <div class="target-land-selector-row" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 5px;">
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(1)">1</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(2)">2</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(3)">3</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(4)">4</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(5)">5</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(6)">6</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(7)">7</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(8)">8</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(9)">9</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(10)">10</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(11)">11</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(12)">12</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(13)">13</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(14)">14</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(15)">15</button>
+                                    <button class="btn btn-sm btn-outline" style="padding: 4px;" onclick="app.setTargetLand(16)">16</button>
+                                </div>
+                            </div>
+                            <button id="btn-start-bidding" class="btn btn-primary btn-block" onclick="app.startBidding()">
+                                경매 시작 (입찰 개시)
+                            </button>
+                            <button id="btn-reveal-bids" class="btn btn-accent btn-block" onclick="app.revealBids()" disabled>
+                                입찰 결과 공개 및 낙찰 판정
+                            </button>
+                            <button id="btn-next-round" class="btn btn-primary btn-block" onclick="app.startNextRound()" style="display: none;">
+                                다음 라운드 시작
+                            </button>
+                            <button class="btn btn-danger btn-block btn-sm" onclick="app.resetGame()">
+                                게임 초기화
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI 사회자 브리핑 -->
+                    <div class="glass-card ai-host-card">
+                        <div class="card-header">
+                            <span class="badge badge-ai">HOST AI</span>
+                            <h3>AI 사회자 해설</h3>
+                        </div>
+                        <div class="ai-speech-bubble">
+                            <p id="ai-commentary">"반갑습니다. 플레이어 여러분. 100포인트를 활용한 고도의 심리전, 비밀 경매 빙고 게임에 오신 것을 환영합니다. 관리자 화면에서 '라운드 시작' 상태가 되면 각 모둠은 비밀 입찰을 진행해 주십시오."</p>
+                        </div>
+                    </div>
+
+                    <!-- 모둠별 자산 현황판 -->
+                    <div class="glass-card scoreboard-card">
+                        <h3>실시간 모둠별 자산 현황</h3>
+                        <div id="admin-scoreboard" class="scoreboard-list">
+                            <!-- JS에서 모둠별 점수 렌더링 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 오른쪽: 4x4 빙고판 -->
+                <div class="admin-main">
+                    <div class="glass-card bingo-card">
+                        <div class="bingo-header">
+                            <h3>4x4 비밀 경매 빙고판</h3>
+                            <span id="game-phase-indicator" class="phase-indicator">입찰 대기 단계</span>
+                        </div>
+                        <div class="bingo-grid" id="admin-bingo-grid">
+                            <!-- 1~16번 땅 카드 렌더링 -->
+                        </div>
+                        <div class="bingo-legend">
+                            <span class="legend-item"><span class="color-dot team1"></span>1조</span>
+                            <span class="legend-item"><span class="color-dot team2"></span>2조</span>
+                            <span class="legend-item"><span class="color-dot team3"></span>3조</span>
+                            <span class="legend-item"><span class="color-dot team4"></span>4조</span>
+                            <span class="legend-item"><span class="color-dot team5"></span>5조</span>
+                            <span class="legend-item"><span class="color-dot team6"></span>6조</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 3. TEAM CLIENT SCREEN (학생 모둠별 화면) -->
+        <section id="screen-team" class="screen">
+            <div class="team-layout">
+                
+                <!-- 상단 모둠 기본 정보 카드 -->
+                <div class="glass-card team-status-card">
+                    <div class="team-info-header">
+                        <h2 id="client-team-name">X조 화면</h2>
+                        <button class="btn btn-sm" onclick="app.exitToGate()">나가기</button>
+                    </div>
+                    
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <span class="label">보유 포인트</span>
+                            <span id="client-team-points" class="value font-numeric">100</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="label">차지한 땅 수</span>
+                            <span id="client-team-lands" class="value font-numeric">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 비밀 입찰 입력 폼 -->
+                <div class="glass-card bid-form-card">
+                    <h3>비밀 입찰</h3>
+                    <div class="target-land-announcement" style="background: rgba(255, 215, 0, 0.08); border: 1px solid var(--color-gold); border-radius: 8px; padding: 12px; margin: 15px 0; font-size: 1.1rem; color: var(--color-gold); font-weight: bold; font-family: 'Orbitron', sans-serif;">
+                        📢 현재 경매 대상: <span id="client-target-land-num">미지정</span>
+                    </div>
+                    <div id="bid-form-container">
+                        <p class="instruction">다른 모둠에게 보이지 않게 입찰 금액을 입력하세요.</p>
+                        
+                        <div class="bid-input-group">
+                            <input type="number" id="input-bid-amount" min="0" max="100" placeholder="0" class="input-bid">
+                            <span class="input-suffix">P</span>
+                        </div>
+
+                        <!-- 퀵 버튼 제공 -->
+                        <div class="quick-bid-buttons">
+                            <button class="btn btn-sm btn-outline" onclick="app.setQuickBid(0)">0 P</button>
+                            <button class="btn btn-sm btn-outline" onclick="app.setQuickBid(10)">10 P</button>
+                            <button class="btn btn-sm btn-outline" onclick="app.setQuickBid(20)">20 P</button>
+                            <button class="btn btn-sm btn-outline" onclick="app.setQuickBid(50)">50 P</button>
+                            <button class="btn btn-sm btn-outline" onclick="app.setQuickBid('all')">ALL IN</button>
+                        </div>
+                        
+                        <button id="btn-submit-bid" class="btn btn-primary btn-block btn-large" onclick="app.submitBid()">
+                            비밀 입찰 제출
+                        </button>
+                    </div>
+                    <div id="bid-complete-container" style="display: none;" class="bid-complete-box">
+                        <div class="success-icon">✓</div>
+                        <h4>입찰 제출 완료!</h4>
+                        <p>사회자가 결과를 공개할 때까지 대기해 주세요.</p>
+                        <p class="submitted-preview">제출한 금액: <span id="submitted-amount-preview" class="accent">0</span> P</p>
+                        <button class="btn btn-sm btn-outline" onclick="app.cancelBidSubmit()">입찰 수정하기</button>
+                    </div>
+                </div>
+
+                <!-- 현재 상태 모둠용 빙고판 (읽기 전용) -->
+                <div class="glass-card client-bingo-card">
+                    <h3>현재 빙고 현황판</h3>
+                    <div class="bingo-grid minified" id="client-bingo-grid">
+                        <!-- 4x4 미니 빙고판 -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <!-- 4. LAND SELECTION DIALOG (낙찰자 땅 선택 모달 - 관리자용) -->
+    <div id="land-selection-modal" class="modal-overlay">
+        <div class="glass-card modal-card">
+            <h2>🎉 낙찰 성공 및 영토 편입</h2>
+            <div class="winner-announcement">
+                <span id="modal-winner-badge" class="badge">X조</span>
+                <p>이번 라운드 경매 대상 땅을 낙찰 모둠이 획득합니다. 아래의 확정 버튼을 눌러주세요.</p>
+            </div>
+            
+            <div class="modal-grid" id="modal-bingo-grid">
+                <!-- 경매 대상 땅 강조 그리드 -->
+            </div>
+            
+            <div class="modal-actions">
+                <p class="instruction">선택한 땅 번호: <span id="selected-land-number" class="accent-gold">없음</span></p>
+                <button id="btn-confirm-land" class="btn btn-primary btn-block" onclick="app.confirmLandSelection()" disabled>
+                    땅 점유 확정 및 다음 단계로
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Source -->
+    <script src="app.js"></script>
+</body>
+</html>
