@@ -1,3 +1,5 @@
+class SecretAuctionApp {
+    constructor() {
         this.roomCode = null;
         this.currentRole = null; // 'admin' or 'team1'~'team6'
         this.selectedLandIndex = null; 
