@@ -21,7 +21,8 @@ class SecretAuctionApp {
             currentWinner: null, // Team key that won the current round
             winningLand: null, 
             targetLand: null, // Target land currently NOT selected initially
-            aiComment: "방이 준비되었습니다. 사회자는 이번 라운드에 경매를 진행할 대상 땅 번호를 아래의 선택기에서 선택한 뒤 '경매 시작' 버튼을 눌러 입찰을 개시해 주십시오."
+            aiComment: "방이 준비되었습니다. 사회자는 이번 라운드에 경매를 진행할 대상 땅 번호를 아래의 선택기에서 선택한 뒤 '경매 시작' 버튼을 눌러 입찰을 개시해 주십시오.",
+            history: [] // Round history logging
         };
 
         this.state = null;
@@ -448,13 +449,25 @@ class SecretAuctionApp {
             aiBriefing += ` 포인트 눈치 싸움이 격렬합니다. 자산을 소진하고도 땅을 얻지 못한 모둠들의 타격이 큽니다.`;
         }
 
+        // Record round history
+        const historyEntry = {
+            round: this.state.round,
+            targetLand: this.state.targetLand,
+            bids: finalizedBids,
+            winner: winnerKey,
+            winnerName: winnerKey ? newTeams[winnerKey].name.split(' ')[0] : '낙찰 실패',
+            winningBid: winnerKey ? finalizedBids[winnerKey] : null
+        };
+        const newHistory = [...(this.state.history || []), historyEntry];
+
         if (winnerKey) {
             this.pushStateUpdate({
                 phase: 'selecting_land',
                 bids: finalizedBids,
                 teams: newTeams,
                 currentWinner: winnerKey,
-                aiComment: aiBriefing
+                aiComment: aiBriefing,
+                history: newHistory
             });
         } else {
             this.pushStateUpdate({
@@ -462,7 +475,8 @@ class SecretAuctionApp {
                 bids: finalizedBids,
                 teams: newTeams,
                 currentWinner: null,
-                aiComment: aiBriefing
+                aiComment: aiBriefing,
+                history: newHistory
             });
         }
     }
@@ -692,6 +706,48 @@ class SecretAuctionApp {
                 `;
                 scoreboard.appendChild(scoreRow);
             });
+
+            // Render History Log
+            const historyLog = document.getElementById('admin-history-log');
+            if (historyLog) {
+                historyLog.innerHTML = '';
+                const historyList = this.state.history || [];
+                if (historyList.length === 0) {
+                    historyLog.innerHTML = '<div style="text-align: center; padding: 15px; color: var(--color-text-dim); font-size: 0.8rem;">경매 진행 이력이 없습니다.</div>';
+                } else {
+                    // Render in reverse chronological order (newest first)
+                    [...historyList].reverse().forEach(entry => {
+                        const historyRow = document.createElement('div');
+                        historyRow.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                        historyRow.style.padding = '8px 4px';
+                        historyRow.style.display = 'flex';
+                        historyRow.style.flexDirection = 'column';
+                        historyRow.style.gap = '4px';
+
+                        let teamBidsHtml = Object.entries(entry.bids)
+                            .map(([teamKey, bidVal]) => {
+                                const teamColor = teams[teamKey] ? teams[teamKey].color : '';
+                                const teamName = teams[teamKey] ? teams[teamKey].name.split(' ')[0] : teamKey;
+                                return `<span style="margin-right: 8px; display: inline-flex; align-items: center; gap: 4px;"><span class="color-dot ${teamColor}" style="display:inline-block; width:6px; height:6px; border-radius:50%;"></span>${teamName}: <strong>${bidVal}P</strong></span>`;
+                            }).join('');
+
+                        const winnerText = entry.winner 
+                            ? `<span style="color:var(--color-gold); font-weight:bold;">${entry.winnerName} (${entry.winningBid}P 낙찰)</span>`
+                            : `<span style="color:var(--color-accent); font-weight:bold;">낙찰 실패</span>`;
+
+                        historyRow.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; font-weight: bold; font-family: 'Orbitron', sans-serif; font-size: 0.8rem; color: #fff;">
+                                <span>[${entry.round}R] ${entry.targetLand}번 땅 경매</span>
+                                <span>결과: ${winnerText}</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; font-size: 0.75rem; color: var(--color-text-dim); margin-top: 2px;">
+                                ${teamBidsHtml}
+                            </div>
+                        `;
+                        historyLog.appendChild(historyRow);
+                    });
+                }
+            }
 
             const adminGrid = document.getElementById('admin-bingo-grid');
             adminGrid.innerHTML = '';
