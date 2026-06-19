@@ -25,7 +25,8 @@ class SecretAuctionApp {
         };
 
         this.state = null;
-        this.broadcastChannel = null;
+        this.eventSource = null;
+        this.pollingInterval = null;
         this.initializedAdminRoom = false;
         
         this.initCommunication();
@@ -48,54 +49,179 @@ class SecretAuctionApp {
 
     connectToRoom(code) {
         this.roomCode = code;
-        this.updateStatusIndicator(`실시간 온라인 (방: ${code})`, "var(--team4)");
+        this.updateStatusIndicator(`실시간 연결 중 (방: ${code})`, "var(--color-gold)");
 
-        // Close previous channel if exists
-        if (this.broadcastChannel) {
-            this.broadcastChannel.close();
+        // Close previous SSE and polling interval if exists
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
         }
 
-        // Initialize local browser BroadcastChannel
-        this.broadcastChannel = new BroadcastChannel(`secret-auction-room-${this.roomCode}`);
+        // Initialize SSE Connection via ntfy.sh (standard port 443 HTTPS, bypasses school firewalls)
+        const sseUrl = `https://ntfy.sh/secret-auction-room-${this.roomCode}/sse`;
+        this.eventSource = new EventSource(sseUrl);
 
-        // Listen for messages
-        this.broadcastChannel.onmessage = (event) => {
-            const message = event.data;
-            if (message && message.type === 'state_sync') {
-                this.state = message.state;
-                this.render();
-            } else if (message && message.type === 'request_sync' && this.currentRole === 'admin') {
-                this.syncStateToNetwork();
+        this.eventSource.onopen = () => {
+            this.updateStatusIndicator(`실시간 연결됨 (방: ${this.roomCode})`, "var(--team4)");
+        };
+
+        this.eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                // ntfy.sh wraps messages inside entry object
+                if (data && data.message) {
+                    const payload = JSON.parse(data.message);
+                    this.handleNetworkMessage(payload);
+                }
+            } catch (e) {
+                console.error("Error parsing SSE message:", e);
             }
         };
 
-        // Initialize state
+        this.eventSource.onerror = (err) => {
+            console.warn("SSE connection interrupted, starting polling fallback...", err);
+            this.updateStatusIndicator(`연결 불안정 (폴링 전환, 방: ${this.roomCode})`, "var(--color-accent)");
+            
+            // Activate polling fallback immediately if not running
+            if (!this.pollingInterval) {
+                this.startPollingFallback();
+            }
+        };
+
+        // Initialize state for Admin
         if (this.currentRole === 'admin') {
             this.state = JSON.parse(JSON.stringify(this.defaultState));
         }
 
+        // Load cached messages to sync up immediately
+        this.loadInitialState();
+
         // Force UI transition immediately
         this.onRoomConnected();
+    }
 
-        // Request sync from other tabs if client
-        if (this.currentRole !== 'admin') {
-            this.broadcastChannel.postMessage({ type: 'request_sync' });
-        } else {
-            this.syncStateToNetwork();
+    async loadInitialState() {
+        try {
+            const response = await fetch(`https://ntfy.sh/secret-auction-room-${this.roomCode}/json?poll=1&since=12h`);
+            if (!response.ok) return;
+            const text = await response.text();
+            const lines = text.trim().split('\n');
+            let latestStatePayload = null;
+            
+            for (let i = lines.length - 1; i >= 0; i--) {
+                if (!lines[i]) continue;
+                try {
+                    const entry = JSON.parse(lines[i]);
+                    if (entry.message) {
+                        const payload = JSON.parse(entry.message);
+                        if (payload && payload.type === 'state_sync' && payload.state) {
+                            latestStatePayload = payload;
+                            break; // Get the most recent valid state
+                        }
+                    }
+                } catch (err) {
+                    // Skip parsing error for single line
+                }
+            }
+
+            if (latestStatePayload) {
+                this.handleNetworkMessage(latestStatePayload);
+            } else {
+                if (this.currentRole === 'admin') {
+                    this.syncStateToNetwork();
+                }
+            }
+        } catch (e) {
+            console.error("Error loading initial state:", e);
         }
     }
 
+    handleNetworkMessage(payload) {
+        if (!payload || payload.type !== 'state_sync' || !payload.state) return;
+        
+        const incomingState = payload.state;
+        const sender = payload.sender;
+
+        if (this.currentRole === 'admin') {
+            // Admin only merges bids submitted by students during the bidding phase
+            if (sender !== 'admin' && this.state && this.state.phase === 'bidding') {
+                let stateChanged = false;
+                const newBids = { ...this.state.bids };
+                
+                if (incomingState.bids) {
+                    Object.entries(incomingState.bids).forEach(([teamKey, bidVal]) => {
+                        if (newBids[teamKey] !== bidVal) {
+                            newBids[teamKey] = bidVal;
+                            stateChanged = true;
+                        }
+                    });
+                }
+
+                if (stateChanged) {
+                    this.state.bids = newBids;
+                    this.syncStateToNetwork();
+                    this.render();
+                }
+            }
+        } else {
+            // Students adopt the authoritative state from the admin
+            this.state = incomingState;
+            this.render();
+        }
+    }
+
+    startPollingFallback() {
+        if (this.pollingInterval) clearInterval(this.pollingInterval);
+        
+        this.pollingInterval = setInterval(async () => {
+            try {
+                const response = await fetch(`https://ntfy.sh/secret-auction-room-${this.roomCode}/json?poll=1&since=10s`);
+                if (!response.ok) return;
+                const text = await response.text();
+                const lines = text.trim().split('\n');
+                
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    if (!lines[i]) continue;
+                    try {
+                        const entry = JSON.parse(lines[i]);
+                        if (entry.message) {
+                            const payload = JSON.parse(entry.message);
+                            if (payload && payload.type === 'state_sync' && payload.sender !== this.currentRole) {
+                                this.handleNetworkMessage(payload);
+                                break;
+                            }
+                        }
+                    } catch (e) {}
+                }
+            } catch (err) {
+                console.error("Polling fetch failed:", err);
+            }
+        }, 3000);
+    }
+
     syncStateToNetwork() {
-        if (this.broadcastChannel && this.state && this.roomCode) {
-            this.broadcastChannel.postMessage({
+        if (this.state && this.roomCode) {
+            const payload = {
                 type: 'state_sync',
-                state: this.state
+                state: this.state,
+                sender: this.currentRole || 'unknown'
+            };
+
+            fetch(`https://ntfy.sh/secret-auction-room-${this.roomCode}`, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            }).catch(err => {
+                console.error("Error syncing state to network:", err);
             });
         }
     }
 
     onRoomConnected() {
-        this.updateStatusIndicator(`실시간 온라인 (방: ${this.roomCode})`, "var(--team4)");
+        this.updateStatusIndicator(`실시간 연결됨 (방: ${this.roomCode})`, "var(--team4)");
         
         // Update Gate Screen UI
         document.getElementById('room-code-input-area').style.display = 'none';
@@ -113,9 +239,13 @@ class SecretAuctionApp {
     }
 
     disconnectRoom() {
-        if (this.broadcastChannel) {
-            this.broadcastChannel.close();
-            this.broadcastChannel = null;
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
         }
         this.roomCode = null;
         this.state = null;
@@ -129,7 +259,7 @@ class SecretAuctionApp {
         const mainOptions = document.getElementById('gate-main-options');
         mainOptions.style.pointerEvents = 'none';
         mainOptions.style.opacity = '0.3';
-        document.getElementById('gate-instruction-text').innerText = "※ 먼저 방 번호를 입력하거나 관리자 로그인으로 방을 생성해야 활성화됩니다.";
+        document.getElementById('gate-instruction-text').innerText = "※ 먼저 방 번호를 입력하여 연결하거나, 위 사회자 버튼으로 방을 생성해 주세요.";
         document.getElementById('gate-instruction-text').style.color = "var(--color-accent)";
         
         this.updateStatusIndicator("서버 연결 완료 (방 미지정)", "var(--color-primary)");
@@ -166,12 +296,17 @@ class SecretAuctionApp {
         document.getElementById('screen-gate').classList.remove('active');
         
         if (role === 'admin') {
+            // CRITICAL BUG FIX: If admin enters an already connected room, ensure state is initialized!
+            if (!this.state) {
+                this.state = JSON.parse(JSON.stringify(this.defaultState));
+            }
             document.getElementById('screen-admin').classList.add('active');
+            this.syncStateToNetwork();
         } else {
             document.getElementById('screen-team').classList.add('active');
             
             // Set client specific labels
-            const teamInfo = this.state.teams[role];
+            const teamInfo = (this.state && this.state.teams && this.state.teams[role]) ? this.state.teams[role] : this.defaultState.teams[role];
             document.getElementById('client-team-name').innerText = teamInfo.name;
             
             // Adjust input max boundary dynamically based on remaining points
@@ -188,6 +323,7 @@ class SecretAuctionApp {
         document.getElementById('screen-team').classList.remove('active');
         document.getElementById('screen-gate').classList.add('active');
     }
+
 
     // Database push wrappers
     pushStateUpdate(updates) {
