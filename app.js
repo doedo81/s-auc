@@ -713,7 +713,7 @@ class SecretAuctionApp {
                 historyLog.innerHTML = '';
                 const historyList = this.state.history || [];
                 if (historyList.length === 0) {
-                    historyLog.innerHTML = '<div style="text-align: center; padding: 15px; color: var(--color-text-dim); font-size: 0.8rem;">경매 진행 이력이 없습니다.</div>';
+                    historyLog.innerHTML = '<div style="text-align: center; padding: 15px; color: var(--color-text-muted); font-size: 0.8rem;">경매 진행 이력이 없습니다.</div>';
                 } else {
                     // Render in reverse chronological order (newest first)
                     [...historyList].reverse().forEach(entry => {
@@ -740,7 +740,7 @@ class SecretAuctionApp {
                                 <span>[${entry.round}R] ${entry.targetLand}번 땅 경매</span>
                                 <span>결과: ${winnerText}</span>
                             </div>
-                            <div style="display: flex; flex-wrap: wrap; font-size: 0.75rem; color: var(--color-text-dim); margin-top: 2px;">
+                            <div style="display: flex; flex-wrap: wrap; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px;">
                                 ${teamBidsHtml}
                             </div>
                         `;
