@@ -136,10 +136,18 @@
                     </div>
 
                     <!-- 모둠별 자산 현황판 -->
-                    <div class="glass-card scoreboard-card">
+                    <div class="glass-card scoreboard-card" style="margin-bottom: 20px;">
                         <h3>실시간 모둠별 자산 현황</h3>
                         <div id="admin-scoreboard" class="scoreboard-list">
                             <!-- JS에서 모둠별 점수 렌더링 -->
+                        </div>
+                    </div>
+
+                    <!-- 경매 이력 판 -->
+                    <div class="glass-card history-card" style="max-height: 250px; display: flex; flex-direction: column; gap: 10px;">
+                        <h3>라운드별 경매 결과 기록</h3>
+                        <div id="admin-history-log" class="history-list" style="overflow-y: auto; flex-grow: 1; padding-right: 4px;">
+                            <!-- JS에서 라운드별 입찰 기록 렌더링 -->
                         </div>
                     </div>
                 </div>
