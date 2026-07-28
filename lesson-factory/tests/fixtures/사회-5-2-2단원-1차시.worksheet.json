@@ -1,0 +1,46 @@
+{
+  "trace_id": "사회-5-2-2단원-1차시",
+  "title": "조선 후기, 신분이 흔들리다",
+  "group_size": 4,
+  "items": [
+    {
+      "id": "W1",
+      "role": "개인쓰기",
+      "for_activity": "A2",
+      "prompt": "공명첩·납속·족보 사기 세 가지 자료를 보고, 각각 누가 무엇을 얻었는지 혼자 적어 봅시다.",
+      "answer_space": "표",
+      "example": "공명첩 — 돈을 낸 상민이 이름이 비어 있는 임명장을 받아 양반이 되었다."
+    },
+    {
+      "id": "W2",
+      "role": "짝비교",
+      "for_activity": "A2",
+      "prompt": "짝과 답을 비교해 봅시다. 같은 점 하나, 다른 점 하나를 적어 봅시다.",
+      "answer_space": "줄",
+      "lines": 4,
+      "example": null
+    },
+    {
+      "id": "W3",
+      "role": "개인답란",
+      "for_activity": "A3",
+      "prompt": "조선 후기에 신분 질서가 흔들린 까닭을 한 문장으로 적어 봅시다.",
+      "answer_space": "줄",
+      "lines": 2,
+      "example": null
+    },
+    {
+      "id": "W4",
+      "role": "모둠합의",
+      "for_activity": "A3",
+      "prompt": "모둠에서 하나의 문장으로 모아 적고, 모두가 설명할 수 있는지 확인해 봅시다.",
+      "answer_space": "네모칸",
+      "example": null
+    }
+  ],
+  "teacher_notes": [
+    "W1 순회 지도: '양반이 늘었다'까지만 쓴 학생에게 '누가, 어떻게'를 물어 준다.",
+    "W4 는 모둠원 전원이 읽어 보게 한 뒤 번호를 부른다."
+  ],
+  "footer": "신리초 5-5 수업용 · 외부 배포 금지"
+}

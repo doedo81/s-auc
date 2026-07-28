@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://s-auc.local/contracts/worksheet.schema.json",
+  "title": "Worksheet",
+  "description": "활동지. 지도안에서 파생되며 새로 창작하지 않는다. 레이아웃은 케이건 템플릿 9종을 채우기만 한다. items[].id 는 지도안 activities[].worksheet_items 와 양방향으로 일치해야 한다(cross_checks.py).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trace_id", "title", "items", "footer"],
+
+  "properties": {
+    "trace_id": { "type": "string" },
+
+    "title": { "type": "string", "minLength": 1 },
+
+    "group_size": {
+      "type": "integer",
+      "enum": [1, 2, 4],
+      "description": "이 활동지가 전제하는 모둠 크기. 케이건 구조의 group_size 와 맞아야 한다."
+    },
+
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "for_activity", "prompt", "answer_space"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^W[0-9]+$" },
+
+          "role": {
+            "type": "string",
+            "enum": [
+              "개인쓰기", "개인답란", "짝비교", "짝점검", "문제세트",
+              "모둠공유", "모둠합의", "질문기록", "카드목록", "전문가정리", "종합"
+            ],
+            "description": "contracts/kagan_structures.json 의 item_roles. 활동이 고른 케이건 구조의 required_item_roles 를 전부 충족해야 한다."
+          },
+
+          "for_activity": {
+            "type": "string",
+            "pattern": "^A[0-9]+$",
+            "description": "이 항목이 속한 지도안 활동 id"
+          },
+
+          "prompt": {
+            "type": "string",
+            "minLength": 3,
+            "description": "학생이 읽는 발문. 5학년 어휘 수준."
+          },
+
+          "answer_space": {
+            "type": "string",
+            "enum": ["줄", "네모칸", "표", "격자", "선긋기", "체크박스"],
+            "description": "답을 적을 공간의 형태"
+          },
+
+          "lines": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "answer_space 가 '줄'일 때 줄 수"
+          },
+
+          "example": {
+            "type": ["string", "null"],
+            "description": "예시 답안. 학생용 인쇄본에는 나가지 않고 교사용에만 표시된다."
+          }
+        }
+      }
+    },
+
+    "teacher_notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "교사용 안내(예상 답, 순회 지도 포인트). 학생용 인쇄본에서 제외된다."
+    },
+
+    "footer": {
+      "type": "string",
+      "const": "신리초 5-5 수업용 · 외부 배포 금지"
+    }
+  }
+}

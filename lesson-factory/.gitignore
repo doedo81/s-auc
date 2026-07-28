@@ -1,0 +1,20 @@
+# 비밀
+.env
+
+# 산출물 — 교과서 자료가 섞이므로 절대 커밋하지 않는다 (CLAUDE.md A-3)
+artifacts/
+materials/inbox/
+
+# 성취기준 DB (용량·재생성 가능)
+curriculum/standards.sqlite
+
+# 버스 DB
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/

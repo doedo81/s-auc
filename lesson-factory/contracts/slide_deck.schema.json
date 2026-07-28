@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://s-auc.local/contracts/slide_deck.schema.json",
+  "title": "SlideDeck",
+  "description": "수업 슬라이드. 제작 지침 v3 규칙을 따른다 — 고정 순서, 문제·정답 분리, 발문·시간은 발표자 노트에만, 시대별 팔레트. 순서와 정답 노출 검사는 checks/slide_rules.py 가 담당한다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trace_id", "era", "slides", "footer"],
+
+  "properties": {
+    "trace_id": { "type": "string" },
+
+    "era": {
+      "type": "string",
+      "enum": ["선사", "삼국", "고려", "조선", "근대", "해당없음"],
+      "description": "지도안의 era 와 일치해야 한다."
+    },
+
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": { "type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$" },
+        "primary": { "type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$" }
+      },
+      "description": "era_palettes.json 의 값과 대조된다. confirmed=false 인 시대는 경고만 낸다."
+    },
+
+    "slides": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "kind", "title", "body", "speaker_notes"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+
+          "kind": {
+            "type": "string",
+            "enum": ["표지", "도입", "학습목표", "활동목록", "활동", "문제", "정답", "정리", "OX", "차시예고"],
+            "description": "v3 고정 순서: 표지 → 도입 → 학습목표 → 활동목록 → 활동(문제/정답 포함) → 정리 → OX → 차시예고"
+          },
+
+          "title": { "type": "string" },
+
+          "body": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "화면에 실제로 보이는 글. 발문·예상 답·시간 배분은 여기에 쓰지 않는다(speaker_notes 로)."
+          },
+
+          "covers_activity": {
+            "type": ["string", "null"],
+            "pattern": "^A[0-9]+$",
+            "description": "이 슬라이드가 다루는 지도안 활동 id. kind='활동'이면 필수. 모든 활동은 최소 1장이 커버해야 한다."
+          },
+
+          "answer_of": {
+            "type": ["integer", "null"],
+            "description": "kind='정답'일 때, 어느 문제 슬라이드의 정답인지(index). 문제 슬라이드 자신에는 정답을 쓰지 않는다."
+          },
+
+          "ox_items": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["statement"],
+              "properties": {
+                "statement": { "type": "string", "minLength": 3 },
+                "$comment_answer": {
+                  "type": "string",
+                  "description": "OX 정답은 여기에 두지 않는다. speaker_notes 에만 쓴다."
+                }
+              }
+            },
+            "description": "kind='OX'일 때 정확히 4문제. 정답은 speaker_notes 에만."
+          },
+
+          "speaker_notes": {
+            "type": "string",
+            "description": "발문·예상 답·시간 배분·OX 정답. 화면에 나가지 않는다."
+          },
+
+          "image_ref": {
+            "type": ["string", "null"],
+            "description": "교과서 캡처 등. 저작권법 25조 — 우리 반 수업용만."
+          }
+        },
+
+        "allOf": [
+          {
+            "$comment": "활동 슬라이드는 어느 활동을 다루는지 밝혀야 한다",
+            "if": { "properties": { "kind": { "const": "활동" } }, "required": ["kind"] },
+            "then": {
+              "properties": { "covers_activity": { "type": "string" } },
+              "required": ["covers_activity"]
+            }
+          },
+          {
+            "$comment": "정답 슬라이드는 어느 문제의 정답인지 밝혀야 한다",
+            "if": { "properties": { "kind": { "const": "정답" } }, "required": ["kind"] },
+            "then": {
+              "properties": { "answer_of": { "type": "integer" } },
+              "required": ["answer_of"]
+            }
+          },
+          {
+            "$comment": "OX 슬라이드는 4문제",
+            "if": { "properties": { "kind": { "const": "OX" } }, "required": ["kind"] },
+            "then": {
+              "properties": { "ox_items": { "minItems": 4, "maxItems": 4 } },
+              "required": ["ox_items"]
+            }
+          }
+        ]
+      }
+    },
+
+    "footer": {
+      "type": "string",
+      "const": "신리초 5-5 수업용 · 외부 배포 금지"
+    }
+  }
+}

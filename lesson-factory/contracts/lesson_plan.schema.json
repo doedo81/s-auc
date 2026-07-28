@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://s-auc.local/contracts/lesson_plan.schema.json",
+  "title": "LessonPlan",
+  "description": "지도안 — 이 파이프라인의 유일한 진실. 활동지와 슬라이드는 전부 여기서 파생되며, 세 자료의 일치는 checks/ 가 기계적으로 검사한다. 스키마로 표현할 수 없는 검사(시간 합계, 학습목표 양방향 커버리지 등)는 checks/plan_checks.py 가 담당한다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trace_id", "meta", "standards", "objectives", "era", "activities", "assessment", "copyright_notice"],
+
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "description": "작업 식별자. 파일명 규칙과 동일하게 [과목]-[학년]-[학기]-[단원]-[차시] 형태를 쓴다.",
+      "examples": ["사회-5-2-2단원-1차시"]
+    },
+
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grade", "semester", "subject", "unit", "period", "minutes"],
+      "properties": {
+        "grade": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "semester": { "type": "integer", "enum": [1, 2] },
+        "subject": {
+          "type": "string",
+          "enum": ["국어", "사회", "도덕", "수학", "과학", "실과", "체육", "음악", "미술", "영어", "창의적체험활동"]
+        },
+        "unit": { "type": "string", "minLength": 1 },
+        "period": {
+          "type": "string",
+          "pattern": "^[0-9]+/[0-9]+$",
+          "description": "몇 차시 중 몇 번째인지. 예: 1/14",
+          "examples": ["1/14"]
+        },
+        "minutes": {
+          "type": "integer",
+          "enum": [40, 45, 80, 90],
+          "description": "초등 1차시는 40분. 블록수업은 80분."
+        },
+        "textbook_pages": {
+          "type": ["array", "null"],
+          "items": { "type": "integer", "minimum": 1 },
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "[시작쪽, 끝쪽]. 교과서 활동을 대체하더라도 진도표·평가 근거로 남긴다."
+        }
+      }
+    },
+
+    "standards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9][가-힣]{1,2}[0-9]{2}-[0-9]{2}$",
+        "description": "성취기준 코드. 대괄호 없이 저장한다. curriculum/standards.sqlite 에 실재해야 하며, 없으면 작업 실패."
+      },
+      "examples": [["6사03-02"]]
+    },
+
+    "objectives": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^O[0-9]+$" },
+          "text": {
+            "type": "string",
+            "minLength": 5,
+            "description": "학생 언어로 쓴 도달점. '~할 수 있다'로 끝낸다."
+          }
+        }
+      }
+    },
+
+    "era": {
+      "type": "string",
+      "enum": ["선사", "삼국", "고려", "조선", "근대", "해당없음"],
+      "description": "슬라이드 팔레트를 결정한다. contracts/era_palettes.json 참조. 사회 외 과목은 '해당없음'."
+    },
+
+    "activities": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/activity" }
+    },
+
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "criteria"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["관찰평가", "서술형", "실기평가", "산출물평가", "자기평가", "동료평가"]
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 5 }
+        }
+      }
+    },
+
+    "differentiation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "below": { "type": "string", "description": "도달이 어려운 학생 지원 방안" },
+        "above": { "type": "string", "description": "이미 도달한 학생 심화 방안" }
+      }
+    },
+
+    "sources": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "참고한 자료. materials/inbox/ 의 파일명 또는 교과서 쪽수."
+    },
+
+    "copyright_notice": {
+      "type": "string",
+      "const": "신리초 5-5 수업용 · 외부 배포 금지"
+    }
+  },
+
+  "$defs": {
+    "activity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "phase", "minutes", "objective_ids", "source", "teacher_do", "student_do", "materials", "worksheet_items"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^A[0-9]+$" },
+
+        "phase": { "type": "string", "enum": ["도입", "전개", "정리"] },
+
+        "minutes": { "type": "integer", "minimum": 1, "maximum": 60 },
+
+        "objective_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^O[0-9]+$" },
+          "description": "이 활동이 겨냥하는 학습목표. 최소 1개. 교과서를 대체할 수 있는 대신 이 연결이 유일한 방어선이다."
+        },
+
+        "source": {
+          "type": "string",
+          "enum": ["교과서", "대체", "혼합"],
+          "description": "교과서 활동 그대로면 '교과서', 다른 활동으로 갈아끼웠으면 '대체', 일부만 바꿨으면 '혼합'."
+        },
+
+        "replaces": {
+          "type": ["string", "null"],
+          "description": "무엇을 대체했는지. 예: '교과서 p.59 「표 정리하기」'"
+        },
+
+        "rationale": {
+          "type": ["string", "null"],
+          "minLength": 10,
+          "description": "왜 대체가 더 나은지. 학습목표 도달 근거를 포함할 것."
+        },
+
+        "kagan_structure": {
+          "type": ["string", "null"],
+          "enum": [
+            "돌아가며 쓰기",
+            "짝 점검",
+            "생각-쓰기-짝-비교",
+            "3단계 인터뷰",
+            "모둠 단어 짝짓기",
+            "번호순으로",
+            "모두미 협의",
+            "직소 전문가 정리지",
+            "직소 모둠 종합지",
+            null
+          ],
+          "description": "전개 활동은 반드시 9종 중 하나. 도입·정리는 null 허용."
+        },
+
+        "teacher_do": { "type": "string", "minLength": 5 },
+        "student_do": { "type": "string", "minLength": 5 },
+
+        "materials": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["슬라이드", "활동지", "교과서", "실물자료", "태블릿", "칠판", "없음"] }
+        },
+
+        "worksheet_items": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^W[0-9]+$" },
+          "description": "이 활동에서 쓰는 활동지 항목 id. 활동지의 items[].id 와 양방향으로 일치해야 한다."
+        },
+
+        "engagement_note": {
+          "type": "string",
+          "description": "이 활동이 왜 학생 참여를 끌어내는지 한 줄. 검수자가 R3(재미·몰입)을 판단하는 근거."
+        }
+      },
+
+      "allOf": [
+        {
+          "$comment": "전개 활동은 케이건 구조 필수",
+          "if": { "properties": { "phase": { "const": "전개" } }, "required": ["phase"] },
+          "then": {
+            "properties": { "kagan_structure": { "type": "string" } },
+            "required": ["kagan_structure"]
+          }
+        },
+        {
+          "$comment": "교과서를 벗어났으면 무엇을 왜 바꿨는지 반드시 남긴다",
+          "if": { "properties": { "source": { "enum": ["대체", "혼합"] } }, "required": ["source"] },
+          "then": {
+            "properties": {
+              "replaces": { "type": "string", "minLength": 1 },
+              "rationale": { "type": "string", "minLength": 10 }
+            },
+            "required": ["replaces", "rationale"]
+          }
+        },
+        {
+          "$comment": "활동지를 쓴다면 항목이 있어야 하고, 항목이 있다면 활동지를 써야 한다",
+          "if": {
+            "properties": { "materials": { "contains": { "const": "활동지" } } },
+            "required": ["materials"]
+          },
+          "then": { "properties": { "worksheet_items": { "minItems": 1 } } },
+          "else": { "properties": { "worksheet_items": { "maxItems": 0 } } }
+        }
+      ]
+    }
+  }
+}

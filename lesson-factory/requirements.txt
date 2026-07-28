@@ -1,0 +1,14 @@
+# P0 (계약 정의) — 지금 필요한 것
+jsonschema>=4.21
+pytest>=8.0
+python-dotenv>=1.0
+
+# P2 이후 (오케스트레이터 · 에이전트)
+anthropic>=0.40
+
+# P2.5 이후 (텔레그램 승인 봇)
+python-telegram-bot>=21.0
+
+# P3 이후 (실파일 렌더링)
+python-docx>=1.1
+python-pptx>=1.0

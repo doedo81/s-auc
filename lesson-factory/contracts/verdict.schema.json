@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://s-auc.local/contracts/verdict.schema.json",
+  "title": "Verdict",
+  "description": "LLM 검수 결과. 기계 검증(checks/)을 통과한 산출물만 여기까지 온다. 검수자는 제작자의 사고 과정과 이전 재작업 이력을 받지 않는다(앵커링 방지).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["trace_id", "attempt", "checks", "verdict"],
+
+  "properties": {
+    "trace_id": { "type": "string" },
+
+    "attempt": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "description": "몇 번째 시도인지. 3을 넘으면 ESCALATED."
+    },
+
+    "checks": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "description": "contracts/rubric.md 의 R1~R7. 전부 채워야 한다 — 일부만 보고 판정하지 않는다.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "pass", "evidence"],
+        "properties": {
+          "id": { "type": "string", "enum": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"] },
+
+          "pass": { "type": "boolean" },
+
+          "evidence": {
+            "type": "string",
+            "minLength": 5,
+            "description": "판정 근거. 산출물에서 실제로 인용할 것. '전반적으로 좋음' 같은 총평은 근거가 아니다."
+          },
+
+          "fix": {
+            "type": ["string", "null"],
+            "description": "pass=false 일 때 무엇을 어떻게 고쳐야 하는지. 구체적인 수정안이어야 한다."
+          },
+
+          "target": {
+            "type": ["string", "null"],
+            "enum": ["plan", "worksheet", "slides", null],
+            "description": "이 지적이 어느 산출물을 고쳐야 하는지"
+          }
+        },
+
+        "allOf": [
+          {
+            "$comment": "불합격이면 고칠 방법과 대상을 반드시 밝힌다",
+            "if": { "properties": { "pass": { "const": false } }, "required": ["pass"] },
+            "then": {
+              "properties": {
+                "fix": { "type": "string", "minLength": 5 },
+                "target": { "type": "string" }
+              },
+              "required": ["fix", "target"]
+            }
+          }
+        ]
+      }
+    },
+
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "REVISE"],
+      "description": "checks 에 pass=false 가 하나라도 있으면 REVISE."
+    },
+
+    "assigned_to": {
+      "type": ["string", "null"],
+      "enum": ["teacher", "assistant.worksheet", "assistant.slides", null],
+      "description": "REVISE 일 때 누가 다시 작업할지. 여러 대상이면 plan 을 고치는 teacher 로 보낸다."
+    },
+
+    "summary": {
+      "type": "string",
+      "description": "한 줄 요약. 텔레그램 카드에 들어간다."
+    }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "verdict": { "const": "REVISE" } }, "required": ["verdict"] },
+      "then": {
+        "properties": { "assigned_to": { "type": "string" } },
+        "required": ["assigned_to"]
+      }
+    }
+  ]
+}
