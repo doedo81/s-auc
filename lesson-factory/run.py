@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from agents import teacher                              # noqa: E402
 from checks import has_errors, needs_review             # noqa: E402
-from core import config as config_mod, db as db_mod     # noqa: E402
+from core import config as config_mod, db as db_mod, paths  # noqa: E402
 from core.llm import ClaudeCodeClient, Client, CostLimitExceeded, LLMError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
@@ -99,7 +99,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--backend", choices=["auto", "claude-code", "api"], default="auto",
                     help="auto = API 키가 있으면 API, 없으면 Claude Code CLI(구독제)")
     ap.add_argument("--write", action="store_true", help="실제로 파일을 쓴다 (기본은 dry_run)")
-    ap.add_argument("--out", type=Path, default=ROOT / "artifacts")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="산출물 뿌리. 없으면 .env 의 LESSON_OUT, 그것도 없으면 artifacts/. "
+                         r"구글 드라이브 폴더를 그대로 줘도 된다 (예: 'G:\내 드라이브\...\2학기')")
     args = ap.parse_args(argv)
 
     cfg = config_mod.load()
@@ -133,7 +135,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n❌ {result.attempts}회 시도 후에도 검사를 통과하지 못했다 → ESCALATED (B-6)", file=sys.stderr)
         return 1
 
-    folder = args.out / trace_id
+    folder = paths.lesson_dir(trace_id, args.out)
     plan_path = folder / f"{trace_id}.plan.json"
     docx_path = folder / f"{trace_id}-세안-v1.docx"
 

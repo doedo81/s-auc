@@ -211,6 +211,12 @@ class ClaudeCodeClient(Client):
             "--model", self.config.model,
             "--effort", self.config.effort,
             "--append-system-prompt", prompt,
+            # ★ 도구를 전부 끈다. 이게 없으면 CLI 가 에이전트 루프로 돌아
+            #   파일을 읽고 여러 턴을 돌린다 — CLAUDE.md C-3("에이전트는 LLM 호출
+            #   1회다")을 어기는 것이고, 실측으로 출력 4만·캐시 12만 토큰이 나왔다.
+            #   교사 에이전트는 글을 쓰는 일만 하고, 자료를 읽는 것은 코드가 한다.
+            "--tools", "",
+            "--strict-mcp-config",   # 세션에 붙은 MCP 서버도 들어오지 않게
         ]
         try:
             proc = subprocess.run(

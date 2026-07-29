@@ -15,6 +15,8 @@ import json
 import sys
 from pathlib import Path
 
+from core import paths
+
 from . import sean
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -129,13 +131,13 @@ def build(plan: dict, db_path: Path | None = None):
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="LessonPlan JSON → 세안 .docx")
     ap.add_argument("plan", type=Path)
-    ap.add_argument("-o", "--out", type=Path, default=ROOT / "artifacts")
+    ap.add_argument("-o", "--out", type=Path, default=None, help="산출물 뿌리 (기본: .env 의 LESSON_OUT 또는 artifacts/)")
     ap.add_argument("--db", type=Path, default=DEFAULT_DB)
     ap.add_argument("--write", action="store_true", help="실제로 파일을 쓴다 (기본은 dry_run)")
     args = ap.parse_args(argv)
 
     plan = json.loads(args.plan.read_text(encoding="utf-8"))
-    target = args.out / plan["trace_id"] / f"{plan['trace_id']}-세안-v1.docx"
+    target = paths.lesson_dir(plan["trace_id"], args.out, subject=plan["meta"]["subject"]) / f"{plan['trace_id']}-세안-v1.docx"
 
     if not args.write:
         print(sean.render_markdown(plan, args.db if args.db.exists() else None))

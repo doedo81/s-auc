@@ -153,6 +153,30 @@ def test_claude_code_sends_prompt_as_system_and_payload_as_input(conn, monkeypat
     assert json.loads(fake.stdin) == {"약안": "원문"}
 
 
+def test_claude_code_turns_every_tool_off(conn, monkeypatch) -> None:
+    """**도구를 끄지 않으면 CLI 가 에이전트 루프로 돈다.**
+
+    실측(2026-07-29): 도구를 켠 채로 2차시를 생성하니 출력 41,063 · 캐시 쓰기
+    125,937 토큰이 나왔다. 모델이 파일을 읽으며 여러 턴을 돈 것이다. 도구를 끄면
+    캐시 쓰기가 27,319 → 2,961 로 떨어지고 1턴으로 끝난다.
+
+    토큰도 토큰이지만 이게 CLAUDE.md C-3 위반이다 — 에이전트는 LLM 호출 1회여야
+    하고, 자료를 읽는 것은 코드의 일이다. 도구를 열어 두면 모델이 등록부를 건너뛰고
+    저장소를 직접 뒤져서, 우리가 조립해 준 입력이 무의미해진다.
+    """
+    from core import llm as llm_mod
+
+    fake = _fake_run(CC_ENVELOPE)
+    monkeypatch.setattr(llm_mod.subprocess, "run", fake)
+    monkeypatch.setattr(llm_mod.ClaudeCodeClient, "available", staticmethod(lambda binary="claude": True))
+
+    llm_mod.ClaudeCodeClient(config(), conn).call_json(
+        agent="teacher", trace_id="T", prompt="p", payload={})
+
+    assert fake.argv[fake.argv.index("--tools") + 1] == ""
+    assert "--strict-mcp-config" in fake.argv
+
+
 def test_claude_code_records_cli_reported_cost(conn, monkeypatch) -> None:
     """CLI 가 계산해 준 값을 그대로 적는다.
 

@@ -19,6 +19,8 @@ import json
 import sys
 from pathlib import Path
 
+from core import paths
+
 from . import worksheet as layout
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -134,12 +136,12 @@ def build(sheet: dict, *, teacher: bool = False):
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Worksheet JSON → 활동지 .docx (학생용·교사용)")
     ap.add_argument("worksheet", type=Path)
-    ap.add_argument("-o", "--out", type=Path, default=ROOT / "artifacts")
+    ap.add_argument("-o", "--out", type=Path, default=None, help="산출물 뿌리 (기본: .env 의 LESSON_OUT 또는 artifacts/)")
     ap.add_argument("--write", action="store_true", help="실제로 파일을 쓴다 (기본은 dry_run)")
     args = ap.parse_args(argv)
 
     sheet = json.loads(args.worksheet.read_text(encoding="utf-8"))
-    folder = args.out / sheet["trace_id"]
+    folder = paths.lesson_dir(sheet["trace_id"], args.out)
     student = folder / f"{sheet['trace_id']}-활동지-v1.docx"
     teacher = folder / f"{sheet['trace_id']}-활동지-교사용-v1.docx"
 
