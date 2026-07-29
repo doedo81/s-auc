@@ -1,0 +1,151 @@
+{
+  "trace_id": "사회-5-2-2단원-9차시",
+  "meta": {
+    "grade": 5,
+    "semester": 2,
+    "subject": "사회",
+    "unit": "2. 사회의 새로운 변화와 오늘날의 우리",
+    "sub_unit": "2-2 조선 후기",
+    "period": "9/14",
+    "minutes": 40,
+    "textbook_pages": [97, 99]
+  },
+  "standards": ["6사05-02"],
+  "objectives": [
+    { "id": "O1", "text": "조선 후기에 사회가 달라진 까닭을 자료를 들어 설명할 수 있다" }
+  ],
+  "success_criteria": [
+    "신분제 변동·서양 문물·실학·새 종교 중 두 가지 이상을 근거로 든다",
+    "'무엇이 어떻게 달라졌는지'를 한 문장으로 말한다"
+  ],
+  "social_skill": "근거를 들어 말하기",
+  "teaching_model": "탐구학습",
+  "theme": null,
+  "era": "조선",
+  "activities": [
+    {
+      "id": "A1",
+      "phase": "도입",
+      "minutes": 5,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": null,
+      "teacher_do": "조선 전기와 후기의 시장 그림을 나란히 띄우고, 달라진 점을 찾게 한다.",
+      "student_do": "두 그림을 비교해 눈에 띄는 차이를 자유롭게 말한다.",
+      "materials": ["슬라이드"],
+      "worksheet_items": [],
+      "engagement_note": "설명을 듣기 전에 스스로 차이를 먼저 발견하므로 궁금증이 생긴다."
+    },
+    {
+      "id": "A2",
+      "phase": "전개",
+      "minutes": 15,
+      "objective_ids": ["O1"],
+      "source": "대체",
+      "replaces": "교과서 p.98 「사회 변화 표 정리하기」",
+      "rationale": "표 채우기는 혼자 하는 작업이라 다 쓴 학생과 못 쓴 학생이 갈린 채 끝난다. 같은 자료를 생각-쓰기-짝-비교로 바꾸면 먼저 혼자 답을 만든 뒤 짝과 견주므로 전원이 자기 답을 갖고 다음 활동에 들어간다. 다루는 개념(신분제 변동·서양 문물·실학·새 종교)은 그대로 유지한다.",
+      "kagan_structure": "생각-쓰기-짝-비교",
+      "teacher_do": "네 가지 자료를 제시하고, 각자 '무엇이 어떻게 달라졌는지'를 먼저 혼자 쓰게 한다.",
+      "student_do": "혼자 쓴 뒤 짝과 견주어 같은 점과 다른 점을 찾아 적는다.",
+      "sentence_frames": [
+        "___ 때문에 ___이 달라졌다."
+      ],
+      "materials": ["활동지", "슬라이드"],
+      "worksheet_items": ["PERSONAL_NOTE", "PAIR_COMPARE"],
+      "engagement_note": "짝과 답이 다를 때 누가 맞는지 확인하고 싶어져 자료를 다시 읽는다."
+    },
+    {
+      "id": "A3",
+      "phase": "전개",
+      "minutes": 13,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": "번호순으로",
+      "teacher_do": "'조선 후기에 사회가 달라진 까닭'을 각자 한 문장으로 적게 한 뒤 모둠 답을 하나로 모으게 하고, 번호를 불러 발표시킨다.",
+      "student_do": "혼자 한 문장을 적고, 모둠에서 하나로 합친 뒤 누가 불려도 설명할 수 있게 서로 확인한다.",
+      "materials": ["활동지"],
+      "worksheet_items": ["PERSONAL_ANSWER", "TEAM_CONSENSUS"],
+      "engagement_note": "누가 호명될지 몰라 모둠이 서로를 이해시키려 한다."
+    },
+    {
+      "id": "A4",
+      "phase": "정리",
+      "minutes": 7,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": null,
+      "teacher_do": "학습목표 문장을 다시 띄우고 OX 4문제로 확인한다.",
+      "student_do": "OX 문제에 손으로 답하고, 오늘 배운 것을 한 문장으로 말한다.",
+      "materials": ["슬라이드"],
+      "worksheet_items": [],
+      "engagement_note": "전원이 동시에 손으로 답해 누가 놓쳤는지 교사가 바로 본다."
+    }
+  ],
+  "prohibitions": [
+    "정답을 문제 화면에서 미리 보여 주지 않는다",
+    "빨리 끝낸 모둠에게 보상하지 않는다 — 속도 경쟁 언어를 쓰지 않는다"
+  ],
+  "misconceptions": [
+    {
+      "misconception": "조선 후기에 신분제가 없어졌다고 생각한다",
+      "correction": "제도는 남아 있었고 흔들린 것이라는 점을 짚는다"
+    }
+  ],
+  "roles": [
+    { "name": "기록이", "duty": "모둠 합의 문장을 활동지에 적는다", "rotates": true },
+    { "name": "이끔이", "duty": "모둠원 순서를 정하고 전원이 말했는지 확인한다", "rotates": true }
+  ],
+  "group_contingency": {
+    "size_3": "번호순으로에서 3번까지만 호명한다",
+    "size_5": "짝 비교를 3인 1조로 하되 기록은 각자 한다",
+    "absent": "빈 번호가 나오면 다시 뽑는다"
+  },
+  "ops": {
+    "prep_minutes": 5,
+    "copies": 24,
+    "duplex": "단면",
+    "cut_count": 0,
+    "no_copy_alternative": "공책 한 쪽을 반으로 접어 왼쪽에 혼자 쓰기, 오른쪽에 짝과 비교",
+    "extra_materials": []
+  },
+  "assessment": {
+    "method": "관찰평가",
+    "criteria": [
+      "조선 후기에 사회가 달라진 까닭을 한 가지 이상 근거를 들어 말하는가",
+      "짝·모둠 활동에서 자기 생각을 말하고 친구의 생각을 듣는가"
+    ],
+    "observations": [
+      {
+        "moment": "A2 짝 비교 중",
+        "evidence": "짝의 답과 자기 답의 차이를 말로 설명하는가",
+        "levels": {
+          "도달": "차이를 찾고 어느 쪽이 자료에 맞는지 근거를 든다",
+          "부분도달": "차이는 찾지만 근거를 대지 못한다",
+          "지원필요": "자기 답을 쓰지 못해 비교가 시작되지 않는다"
+        }
+      }
+    ],
+    "feedback_sentences": [
+      "___을 찾았네요. 이제 그게 교과서 어느 자료에 나오는지 짚어 볼까요?"
+    ],
+    "exit_check": [
+      "조선 후기에 달라진 것 한 가지를 말할 수 있다",
+      "그렇게 된 까닭을 자료를 들어 말할 수 있다"
+    ]
+  },
+  "differentiation": {
+    "below": "자료 카드에 핵심 낱말에 밑줄을 미리 그어 주고 문장 시작 부분을 제시한다.",
+    "above": "네 가지 변화 중 어느 것이 가장 큰 영향을 주었는지 골라 근거를 들게 한다.",
+    "support_frames": ["교과서 ___쪽을 보면 ___이 나옵니다."]
+  },
+  "safety_notice": null,
+  "privacy_notice": null,
+  "sources": ["교과서 pp.97-99", "케이건 레퍼런스 v4"],
+  "copyright_notice": "신리초 5-5 수업용 · 외부 배포 금지"
+}

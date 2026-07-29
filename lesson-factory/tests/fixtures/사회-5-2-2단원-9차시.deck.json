@@ -1,0 +1,158 @@
+{
+  "trace_id": "사회-5-2-2단원-9차시",
+  "era": "조선",
+  "theme": null,
+  "palette": { "background": "#FBF4E2", "accent": "#3A4A6B" },
+  "slides": [
+    {
+      "index": 1,
+      "kind": "표지",
+      "role": "표지",
+      "title": "조선 후기, 무엇이 달라졌을까",
+      "body": ["사회 5-2 · 2-2 · 9차시", "교과서 97~99쪽"],
+      "covers_activity": null,
+      "answer_of": null,
+      "textbook_page": 97,
+      "speaker_notes": "표지를 띄운 채 출석과 준비물을 확인한다. (1분)"
+    },
+    {
+      "index": 2,
+      "kind": "생각을 열어요",
+      "role": "도입",
+      "title": "무엇이 달라졌나요?",
+      "body": ["조선 전기의 시장", "조선 후기의 시장"],
+      "covers_activity": "A1",
+      "answer_of": null,
+      "textbook_page": 97,
+      "speaker_notes": "발문: 두 그림에서 달라진 점을 하나만 찾아 말해 볼까요? 예상 답: 사람이 많다 / 물건이 다양하다. 정답을 정해 주지 않는다. (4분)",
+      "image_ref": "교과서 p.97 시장 그림"
+    },
+    {
+      "index": 3,
+      "kind": "오늘의 학습목표",
+      "role": "학습목표",
+      "title": "오늘의 학습목표",
+      "body": ["조선 후기에 사회가 달라진 까닭을 자료를 들어 설명할 수 있다."],
+      "covers_activity": null,
+      "answer_of": null,
+      "textbook_page": null,
+      "speaker_notes": "학생이 소리 내어 한 번 읽게 한다. 성공 기준 2가지도 함께 짚는다. (1분)"
+    },
+    {
+      "index": 4,
+      "kind": "오늘의 수업 활동",
+      "role": "활동목록",
+      "title": "오늘의 수업 활동",
+      "body": ["활동 1. 혼자 쓰고 짝과 견주기", "활동 2. 까닭을 한 문장으로 모으기"],
+      "covers_activity": null,
+      "answer_of": null,
+      "textbook_page": null,
+      "speaker_notes": "활동 이름만 읽어 준다. 내용은 아직 말하지 않는다."
+    },
+    {
+      "index": 5,
+      "kind": "자료 살펴보기",
+      "role": "활동",
+      "title": "활동 1 · 혼자 쓰고 짝과 견주기",
+      "body": ["신분제 변동", "서양 문물", "실학", "새로운 종교"],
+      "sentence_frames": ["___ 때문에 ___이 달라졌다."],
+      "covers_activity": "A2",
+      "answer_of": null,
+      "textbook_page": 98,
+      "sources": ["교과서 98쪽"],
+      "speaker_notes": "생각-쓰기-짝-비교. 혼자 쓰기 7분 → 짝 비교 5분 → 나누기 3분. 다 쓴 학생에게 '무엇이, 왜'를 추가로 묻는다. 활동지 PERSONAL_NOTE → PAIR_COMPARE 순서."
+    },
+    {
+      "index": 6,
+      "kind": "잠깐 확인",
+      "role": "문제",
+      "title": "잠깐 확인",
+      "body": ["돈을 내고 벼슬 이름을 받을 수 있게 한 문서를 무엇이라고 할까요?"],
+      "covers_activity": "A2",
+      "answer_of": null,
+      "textbook_page": 98,
+      "speaker_notes": "정답 선노출 금지. 손을 들게 하지 말고 짝과 먼저 말하게 한 뒤 다음 장을 연다."
+    },
+    {
+      "index": 7,
+      "kind": "정답 공개",
+      "role": "정답",
+      "title": "정답",
+      "body": ["공명첩"],
+      "covers_activity": null,
+      "answer_of": 6,
+      "textbook_page": 98,
+      "speaker_notes": "이름 칸이 비어 있어서 '공명(空名)'이라고 부른다는 점을 덧붙인다."
+    },
+    {
+      "index": 8,
+      "kind": "모둠 활동",
+      "role": "활동",
+      "title": "활동 2 · 한 문장으로 모으기",
+      "body": ["혼자 한 문장 → 모둠 한 문장 → 번호를 부르면 발표"],
+      "response_slots": [
+        { "label": "우리 모둠의 한 문장", "type": "빈칸" }
+      ],
+      "covers_activity": "A3",
+      "answer_of": null,
+      "textbook_page": 99,
+      "speaker_notes": "번호순으로. 개인 3분 → 모둠 합의 6분 → 호명 발표 4분. 2~3모둠만 발표시킨다(시간 관리). 활동지 PERSONAL_ANSWER → TEAM_CONSENSUS."
+    },
+    {
+      "index": 9,
+      "kind": "오늘 배운 것",
+      "role": "정리",
+      "title": "오늘 배운 것",
+      "body": ["신분제 변동·서양 문물·실학·새 종교가 겹치면서 조선 후기의 사회가 달라졌습니다."],
+      "covers_activity": "A4",
+      "answer_of": null,
+      "textbook_page": 99,
+      "speaker_notes": "학습목표 문장과 나란히 놓고 비교하게 한다."
+    },
+    {
+      "index": 10,
+      "kind": "OX로 확인해요",
+      "role": "OX",
+      "title": "OX로 확인해요",
+      "body": [],
+      "covers_activity": "A4",
+      "answer_of": null,
+      "textbook_page": null,
+      "ox_items": [
+        {
+          "statement": "공명첩은 이름이 미리 적혀 있는 임명장이다.",
+          "answer": "X",
+          "rationale": "이름 칸이 비어 있어 공명첩이라 부른다"
+        },
+        {
+          "statement": "조선 후기에 서양의 물건과 지식이 들어왔다.",
+          "answer": "O",
+          "rationale": "청을 오간 사신들이 시계·지도 등을 들여왔다"
+        },
+        {
+          "statement": "실학자들은 백성의 생활을 나아지게 하려 했다.",
+          "answer": "O",
+          "rationale": "실생활에 도움이 되는 학문을 강조했다"
+        },
+        {
+          "statement": "조선 후기에 신분 제도가 완전히 없어졌다.",
+          "answer": "X",
+          "rationale": "제도는 남아 있었고 흔들린 것이다"
+        }
+      ],
+      "speaker_notes": "전원 동시에 손으로 표시하게 한다. 정답과 까닭은 이 노트에만 있고 화면에는 문장만 나간다."
+    },
+    {
+      "index": 11,
+      "kind": "다음 시간에는",
+      "role": "차시예고",
+      "title": "다음 시간에는",
+      "body": ["달라진 사회 속에서 사람들의 생활은 어떻게 바뀌었을까요?"],
+      "covers_activity": null,
+      "answer_of": null,
+      "textbook_page": 100,
+      "speaker_notes": "교과서 100쪽을 미리 펴 보게 한다."
+    }
+  ],
+  "footer": "신리초 5-5 수업용 · 외부 배포 금지"
+}

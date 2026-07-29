@@ -26,7 +26,13 @@
         "additionalProperties": false,
         "required": ["id", "role", "for_activity", "prompt", "answer_space"],
         "properties": {
-          "id": { "type": "string", "pattern": "^W[0-9]+$" },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z]{3,}[A-Z0-9_]*$",
+            "maxLength": 40,
+            "description": "항목 이름표. 실물 활동지는 번호가 아니라 이름을 쓴다. 영문 3글자 이상으로 시작해야 하므로 W1 같은 번호는 거부된다.",
+            "examples": ["OPTION_A", "PAIR_COACH", "TEAM_AGREEMENT", "REVISION_EVIDENCE"]
+          },
 
           "role": {
             "type": "string",

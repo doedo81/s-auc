@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://s-auc.local/contracts/slide_deck.schema.json",
   "title": "SlideDeck",
-  "description": "수업 슬라이드. 제작 지침 v3 규칙을 따른다 — 고정 순서, 문제·정답 분리, 발문·시간은 발표자 노트에만, 시대별 팔레트. 순서와 정답 노출 검사는 checks/slide_rules.py 가 담당한다.",
+  "description": "수업 슬라이드. 실물 조사(2026-07-28) 결과 차시마다 서사가 달라 고정 슬라이드 순서를 강제하지 않는다. kind 는 덱 고유 어휘(개방형), role 은 기계 검사용 기능 표시(폐쇄형)다. 순서 검사는 경고로만 내고, 문제·정답 분리는 실패 조건으로 유지한다.",
   "type": "object",
   "additionalProperties": false,
   "required": ["trace_id", "era", "slides", "footer"],
@@ -16,19 +16,24 @@
       "description": "지도안의 era 와 일치해야 한다."
     },
 
+    "theme": {
+      "type": ["string", "null"],
+      "description": "차시 서사·메타포. 실물 예: '설계 스튜디오', '2045 도시 관제', '윤리 복구실'. 덱 전체의 어휘를 결정한다."
+    },
+
     "palette": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "background": { "type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$" },
-        "primary": { "type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$" }
+        "accent": { "type": ["string", "null"], "pattern": "^#[0-9A-Fa-f]{6}$" }
       },
-      "description": "era_palettes.json 의 값과 대조된다. confirmed=false 인 시대는 경고만 낸다."
+      "description": "era_palettes.json 의 값과 대조된다."
     },
 
     "slides": {
       "type": "array",
-      "minItems": 7,
+      "minItems": 5,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -38,8 +43,14 @@
 
           "kind": {
             "type": "string",
-            "enum": ["표지", "도입", "학습목표", "활동목록", "활동", "문제", "정답", "정리", "OX", "차시예고"],
-            "description": "v3 고정 순서: 표지 → 도입 → 학습목표 → 활동목록 → 활동(문제/정답 포함) → 정리 → OX → 차시예고"
+            "minLength": 1,
+            "description": "덱 고유 어휘. 개방형 — 차시 서사를 막지 않는다. 실물 예: '문제판', '개인판단', '짝피드백', '정답판', '기준공개', '게이트', '승인', '출구점검'."
+          },
+
+          "role": {
+            "type": ["string", "null"],
+            "enum": ["표지", "도입", "학습목표", "활동목록", "활동", "문제", "정답", "정리", "OX", "차시예고", null],
+            "description": "기계 검사용 기능 표시. kind 가 무엇이든 기능이 '문제'면 role='문제'. 검사는 이 값만 본다."
           },
 
           "title": { "type": "string" },
@@ -50,15 +61,36 @@
             "description": "화면에 실제로 보이는 글. 발문·예상 답·시간 배분은 여기에 쓰지 않는다(speaker_notes 로)."
           },
 
+          "sentence_frames": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "학생이 채워 말하는 문장틀. 예: '우리 모둠은 ___을 위해 ___을 활용한다.' body 와 구별한다."
+          },
+
+          "response_slots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "type"],
+              "properties": {
+                "label": { "type": "string" },
+                "type": { "type": "string", "enum": ["빈칸", "체크박스", "선택", "서명", "척도"] },
+                "options": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "description": "슬라이드가 화면이 아니라 서식일 때. 실물 예: '□ 승인 □ 보완 필요', '가로 ___ mm', '모둠원 서명 ①②③④'."
+          },
+
           "covers_activity": {
             "type": ["string", "null"],
             "pattern": "^A[0-9]+$",
-            "description": "이 슬라이드가 다루는 지도안 활동 id. kind='활동'이면 필수. 모든 활동은 최소 1장이 커버해야 한다."
+            "description": "이 슬라이드가 다루는 지도안 활동 id. role='활동'이면 필수."
           },
 
           "answer_of": {
             "type": ["integer", "null"],
-            "description": "kind='정답'일 때, 어느 문제 슬라이드의 정답인지(index). 문제 슬라이드 자신에는 정답을 쓰지 않는다."
+            "description": "role='정답'일 때, 어느 문제 슬라이드의 정답인지(index). 문제 슬라이드 자신에는 정답을 쓰지 않는다."
           },
 
           "ox_items": {
@@ -67,21 +99,34 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["statement"],
+              "required": ["statement", "answer", "rationale"],
               "properties": {
                 "statement": { "type": "string", "minLength": 3 },
-                "$comment_answer": {
+                "answer": { "type": "string", "enum": ["O", "X"] },
+                "rationale": {
                   "type": "string",
-                  "description": "OX 정답은 여기에 두지 않는다. speaker_notes 에만 쓴다."
+                  "minLength": 2,
+                  "description": "왜 그 답인지 한 줄. 학생 정정 지도에 쓴다."
                 }
               }
             },
-            "description": "kind='OX'일 때 정확히 4문제. 정답은 speaker_notes 에만."
+            "description": "role='OX'일 때 정확히 4문제. answer·rationale 은 발표자 노트로만 출력되고 화면에는 statement 만 나간다(render 단계 책임)."
+          },
+
+          "textbook_page": {
+            "type": ["integer", "null"],
+            "description": "이 슬라이드가 대응하는 교과서 쪽. 실물은 슬라이드마다 다른 쪽을 가리킨다."
+          },
+
+          "sources": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "슬라이드별 출처·자산. 실물 예: '교과서 77쪽: p77_sketch.png', '자체 제작'."
           },
 
           "speaker_notes": {
             "type": "string",
-            "description": "발문·예상 답·시간 배분·OX 정답. 화면에 나가지 않는다."
+            "description": "발문·예상 답·시간 배분·금지사항·오개념 교정·OX 정답. 화면에 나가지 않는다."
           },
 
           "image_ref": {
@@ -93,23 +138,23 @@
         "allOf": [
           {
             "$comment": "활동 슬라이드는 어느 활동을 다루는지 밝혀야 한다",
-            "if": { "properties": { "kind": { "const": "활동" } }, "required": ["kind"] },
+            "if": { "properties": { "role": { "const": "활동" } }, "required": ["role"] },
             "then": {
               "properties": { "covers_activity": { "type": "string" } },
               "required": ["covers_activity"]
             }
           },
           {
-            "$comment": "정답 슬라이드는 어느 문제의 정답인지 밝혀야 한다",
-            "if": { "properties": { "kind": { "const": "정답" } }, "required": ["kind"] },
+            "$comment": "정답 슬라이드는 어느 문제의 정답인지 밝혀야 한다 (문제·정답 분리 규칙)",
+            "if": { "properties": { "role": { "const": "정답" } }, "required": ["role"] },
             "then": {
               "properties": { "answer_of": { "type": "integer" } },
               "required": ["answer_of"]
             }
           },
           {
-            "$comment": "OX 슬라이드는 4문제",
-            "if": { "properties": { "kind": { "const": "OX" } }, "required": ["kind"] },
+            "$comment": "OX 는 4문제",
+            "if": { "properties": { "role": { "const": "OX" } }, "required": ["role"] },
             "then": {
               "properties": { "ox_items": { "minItems": 4, "maxItems": 4 } },
               "required": ["ox_items"]

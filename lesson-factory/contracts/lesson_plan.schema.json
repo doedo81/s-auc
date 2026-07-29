@@ -2,16 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://s-auc.local/contracts/lesson_plan.schema.json",
   "title": "LessonPlan",
-  "description": "지도안 — 이 파이프라인의 유일한 진실. 활동지와 슬라이드는 전부 여기서 파생되며, 세 자료의 일치는 checks/ 가 기계적으로 검사한다. 스키마로 표현할 수 없는 검사(시간 합계, 학습목표 양방향 커버리지 등)는 checks/plan_checks.py 가 담당한다.",
+  "description": "지도안 — 이 파이프라인의 유일한 진실. 활동지와 슬라이드는 전부 여기서 파생되며, 세 자료의 일치는 checks/ 가 기계적으로 검사한다. 구조는 사회 5-2 약안(.md) 표와 세안(.docx) 헤더를 그대로 인코딩한 것이다. 스키마로 표현할 수 없는 검사(시간 합계, 학습목표 양방향 커버리지 등)는 checks/plan_checks.py 가 담당한다.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["trace_id", "meta", "standards", "objectives", "era", "activities", "assessment", "copyright_notice"],
+  "required": [
+    "trace_id", "meta", "standards", "objectives", "social_skill",
+    "era", "activities", "assessment", "copyright_notice"
+  ],
 
   "properties": {
     "trace_id": {
       "type": "string",
       "description": "작업 식별자. 파일명 규칙과 동일하게 [과목]-[학년]-[학기]-[단원]-[차시] 형태를 쓴다.",
-      "examples": ["사회-5-2-2단원-1차시"]
+      "examples": ["사회-5-2-2단원-9차시"]
     },
 
     "meta": {
@@ -26,11 +29,16 @@
           "enum": ["국어", "사회", "도덕", "수학", "과학", "실과", "체육", "음악", "미술", "영어", "창의적체험활동"]
         },
         "unit": { "type": "string", "minLength": 1 },
+        "sub_unit": {
+          "type": ["string", "null"],
+          "description": "소단원. 사회 5-2 약안이 소단원 단위이므로 추적에 쓴다.",
+          "examples": ["2-2 조선 후기"]
+        },
         "period": {
           "type": "string",
           "pattern": "^[0-9]+/[0-9]+$",
-          "description": "몇 차시 중 몇 번째인지. 예: 1/14",
-          "examples": ["1/14"]
+          "description": "몇 차시 중 몇 번째인지.",
+          "examples": ["9/14"]
         },
         "minutes": {
           "type": "integer",
@@ -53,9 +61,9 @@
       "items": {
         "type": "string",
         "pattern": "^[0-9][가-힣]{1,2}[0-9]{2}-[0-9]{2}$",
-        "description": "성취기준 코드. 대괄호 없이 저장한다. curriculum/standards.sqlite 에 실재해야 하며, 없으면 작업 실패."
+        "description": "성취기준 코드. 대괄호 없는 정규형으로 저장한다(실물 표기는 [6사05-02]). curriculum/standards.sqlite 에 실재해야 하며, 없으면 작업 실패."
       },
-      "examples": [["6사03-02"]]
+      "examples": [["6사05-02"]]
     },
 
     "objectives": {
@@ -71,10 +79,34 @@
           "text": {
             "type": "string",
             "minLength": 5,
-            "description": "학생 언어로 쓴 도달점. '~할 수 있다'로 끝낸다."
+            "description": "성취기준을 학생이 이해할 수 있는 '~할 수 있다' 한 문장으로 바꾼 것."
           }
         }
       }
+    },
+
+    "success_criteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 },
+      "description": "학습목표와 구별되는 성공 기준. '무엇이 보이면 도달인가'를 학생 언어로. 실물 3차시 슬라이드에 4개가 인쇄되어 있었다."
+    },
+
+    "social_skill": {
+      "type": "string",
+      "minLength": 2,
+      "description": "이 차시에서 기를 사회적 기술. 약안·세안 모두의 필수 항목.",
+      "examples": ["끝까지 듣기", "근거를 들어 말하기", "역할 지키기"]
+    },
+
+    "teaching_model": {
+      "type": ["string", "null"],
+      "description": "수업모형. 세안 헤더 항목.",
+      "examples": ["탐구학습", "문제해결학습", "협동학습"]
+    },
+
+    "theme": {
+      "type": ["string", "null"],
+      "description": "차시 서사·메타포. 실물 예: '설계 스튜디오', '2045 도시 관제', '윤리 복구실'."
     },
 
     "era": {
@@ -87,6 +119,66 @@
       "type": "array",
       "minItems": 2,
       "items": { "$ref": "#/$defs/activity" }
+    },
+
+    "prohibitions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 3 },
+      "description": "이 수업에서 하지 말아야 할 것. 실물에서 반복되는 저작 규칙. 예: '정답 선노출 금지', '속도 경쟁·탈락·순위 언어 사용 금지'. teacher_do 는 '해야 할 것'만 담으므로 별도 필드가 필요하다."
+    },
+
+    "misconceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["misconception", "correction"],
+        "properties": {
+          "misconception": { "type": "string", "minLength": 3 },
+          "correction": { "type": "string", "minLength": 3 }
+        }
+      },
+      "description": "예상되는 오개념과 교정 방법."
+    },
+
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "duty"],
+        "properties": {
+          "name": { "type": "string" },
+          "duty": { "type": "string" },
+          "rotates": { "type": "boolean", "default": false }
+        }
+      },
+      "description": "모둠 내 역할 분담. 예: 안전 지킴이 / 기록·설명 담당."
+    },
+
+    "group_contingency": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "size_3": { "type": ["string", "null"], "description": "3명 모둠일 때 조정 방법" },
+        "size_5": { "type": ["string", "null"], "description": "5명 모둠일 때 조정 방법" },
+        "absent": { "type": ["string", "null"], "description": "결석으로 역할이 빌 때 대처" }
+      },
+      "description": "모둠 인원이 4명이 아닐 때. 직소·번호순으로처럼 인원 전제가 있는 구조에서 실제로 필요하다."
+    },
+
+    "ops": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prep_minutes": { "type": "integer", "minimum": 0 },
+        "copies": { "type": "integer", "minimum": 0, "description": "인쇄 부수" },
+        "duplex": { "type": ["string", "null"], "enum": ["단면", "양면-긴쪽", "양면-짧은쪽", null] },
+        "cut_count": { "type": "integer", "minimum": 0, "description": "절취 횟수. 0이 목표" },
+        "no_copy_alternative": { "type": ["string", "null"], "description": "인쇄가 불가능할 때의 대안" },
+        "extra_materials": { "type": "array", "items": { "type": "string" } }
+      },
+      "description": "교실 운영·인쇄 정보. 실물 교사용 문서가 항상 이 블록으로 시작한다."
     },
 
     "assessment": {
@@ -102,6 +194,39 @@
           "type": "array",
           "minItems": 1,
           "items": { "type": "string", "minLength": 5 }
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["moment", "levels"],
+            "properties": {
+              "moment": { "type": "string", "description": "언제 관찰하는가. 예: 'A2 짝 비교 중'" },
+              "evidence": { "type": ["string", "null"], "description": "무엇을 보고 판단하는가" },
+              "levels": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["도달", "부분도달", "지원필요"],
+                "properties": {
+                  "도달": { "type": "string" },
+                  "부분도달": { "type": "string" },
+                  "지원필요": { "type": "string" }
+                }
+              }
+            }
+          },
+          "description": "3단계 루브릭 × 관찰 장면. 실물 교사용 문서의 핵심 자산."
+        },
+        "feedback_sentences": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "즉시 피드백 문장. 예: '___의 쓰임이 보여요. 이제 ___을 숫자로 표시해 봅시다.'"
+        },
+        "exit_check": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "출구 점검 문항. 학생이 스스로 도달을 확인한다."
         }
       }
     },
@@ -110,9 +235,24 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "below": { "type": "string", "description": "도달이 어려운 학생 지원 방안" },
-        "above": { "type": "string", "description": "이미 도달한 학생 심화 방안" }
+        "below": { "type": "string", "description": "느린 학습자 지원 방안" },
+        "above": { "type": "string", "description": "빠른 학습자 심화 방안" },
+        "support_frames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "지원이 필요한 학생에게 주는 문장틀."
+        }
       }
+    },
+
+    "safety_notice": {
+      "type": ["string", "null"],
+      "description": "안전 고지. 도구·실습이 있는 차시에 필요. 저작권 고지와 별개다."
+    },
+
+    "privacy_notice": {
+      "type": ["string", "null"],
+      "description": "개인정보 고지. 촬영·공개가 있는 차시에 필요."
     },
 
     "sources": {
@@ -166,22 +306,25 @@
         "kagan_structure": {
           "type": ["string", "null"],
           "enum": [
-            "돌아가며 쓰기",
-            "짝 점검",
-            "생각-쓰기-짝-비교",
-            "3단계 인터뷰",
-            "모둠 단어 짝짓기",
-            "번호순으로",
-            "모두미 협의",
-            "직소 전문가 정리지",
-            "직소 모둠 종합지",
+            "돌아가며 쓰기", "짝 점검", "생각-쓰기-짝-비교", "3단계 인터뷰",
+            "모둠 단어 짝짓기", "번호순으로", "모두미 협의",
+            "직소 전문가 정리지", "직소 모둠 종합지",
+            "동전 내놓기", "하나 주고 하나 받기", "부채모양 뽑기", "퀴즈-퀴즈-교환",
+            "동시응답", "셋 가고 하나 남기", "두 머리 함께", "모서리 선택",
+            "생각-짝-나누기", "브레인라이팅",
             null
           ],
-          "description": "전개 활동은 반드시 9종 중 하나. 도입·정리는 null 허용."
+          "description": "전개 활동은 반드시 이 중 하나. 도입·정리는 null 허용. has_template=true 인 9종은 활동지 항목 역할까지 기계 검증된다."
         },
 
         "teacher_do": { "type": "string", "minLength": 5 },
         "student_do": { "type": "string", "minLength": 5 },
+
+        "sentence_frames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "학생이 채워 말하는 문장틀. 예: '우리 모둠은 ___을 위해 ___을 선택했다.'"
+        },
 
         "materials": {
           "type": "array",
@@ -190,7 +333,12 @@
 
         "worksheet_items": {
           "type": "array",
-          "items": { "type": "string", "pattern": "^W[0-9]+$" },
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{3,}[A-Z0-9_]*$",
+            "description": "활동지 항목 이름표. 실물은 번호가 아니라 이름을 쓴다: OPTION_A, PAIR_COACH, TEAM_AGREEMENT, REVISION_EVIDENCE. 영문 3글자 이상으로 시작해야 하므로 W1 같은 번호는 거부된다.",
+            "maxLength": 40
+          },
           "description": "이 활동에서 쓰는 활동지 항목 id. 활동지의 items[].id 와 양방향으로 일치해야 한다."
         },
 

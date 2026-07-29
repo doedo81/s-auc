@@ -17,7 +17,7 @@ from jsonschema import Draft202012Validator
 
 CONTRACTS = Path(__file__).resolve().parent.parent / "contracts"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
-TRACE = "사회-5-2-2단원-1차시"
+TRACE = "사회-5-2-2단원-9차시"
 
 
 def load(path: Path) -> dict:
@@ -47,7 +47,6 @@ def deck() -> dict:
 
 @pytest.mark.parametrize("name", ["lesson_plan", "worksheet", "slide_deck", "verdict"])
 def test_schema_is_wellformed(name: str) -> None:
-    """스키마 파일 자체가 유효한 JSON Schema 인가."""
     Draft202012Validator.check_schema(load(CONTRACTS / f"{name}.schema.json"))
 
 
@@ -80,7 +79,6 @@ def test_rejects_활동_without_objective(plan: dict) -> None:
 
 
 def test_rejects_전개_without_kagan(plan: dict) -> None:
-    """전개 활동은 케이건 구조 9종 중 하나를 반드시 쓴다."""
     bad = copy.deepcopy(plan)
     bad["activities"][1]["kagan_structure"] = None
     _rejects("lesson_plan", bad)
@@ -93,7 +91,6 @@ def test_rejects_unknown_kagan(plan: dict) -> None:
 
 
 def test_rejects_대체_without_rationale(plan: dict) -> None:
-    """교과서를 벗어났으면 무엇을 왜 바꿨는지 반드시 남긴다."""
     bad = copy.deepcopy(plan)
     bad["activities"][1]["rationale"] = None
     _rejects("lesson_plan", bad)
@@ -105,10 +102,16 @@ def test_rejects_대체_without_replaces(plan: dict) -> None:
     _rejects("lesson_plan", bad)
 
 
-def test_rejects_worksheet_items_without_활동지(plan: dict) -> None:
-    """활동지를 쓰지 않는데 항목을 참조하면 어딘가 어긋난 것이다."""
+def test_rejects_missing_social_skill(plan: dict) -> None:
+    """사회적 기술은 약안·세안 모두의 필수 항목이다."""
     bad = copy.deepcopy(plan)
-    bad["activities"][0]["worksheet_items"] = ["W9"]
+    del bad["social_skill"]
+    _rejects("lesson_plan", bad)
+
+
+def test_rejects_worksheet_items_without_활동지(plan: dict) -> None:
+    bad = copy.deepcopy(plan)
+    bad["activities"][0]["worksheet_items"] = ["SOMETHING"]
     _rejects("lesson_plan", bad)
 
 
@@ -118,9 +121,20 @@ def test_rejects_활동지_without_items(plan: dict) -> None:
     _rejects("lesson_plan", bad)
 
 
+def test_rejects_numbered_worksheet_id(plan: dict, worksheet: dict) -> None:
+    """실물 활동지는 번호가 아니라 이름표를 쓴다 (W1 → PERSONAL_NOTE)."""
+    bad_plan = copy.deepcopy(plan)
+    bad_plan["activities"][1]["worksheet_items"] = ["W1", "W2"]
+    _rejects("lesson_plan", bad_plan)
+
+    bad_ws = copy.deepcopy(worksheet)
+    bad_ws["items"][0]["id"] = "W1"
+    _rejects("worksheet", bad_ws)
+
+
 def test_rejects_malformed_standard_code(plan: dict) -> None:
     bad = copy.deepcopy(plan)
-    bad["standards"] = ["[6사03-02]"]  # 대괄호는 저장하지 않는다
+    bad["standards"] = ["[6사05-02]"]  # 대괄호는 벗겨서 저장한다
     _rejects("lesson_plan", bad)
 
 
@@ -133,17 +147,16 @@ def test_rejects_missing_copyright(plan: dict) -> None:
 def test_rejects_활동슬라이드_without_covers_activity(deck: dict) -> None:
     bad = copy.deepcopy(deck)
     for s in bad["slides"]:
-        if s["kind"] == "활동":
+        if s.get("role") == "활동":
             s["covers_activity"] = None
             break
     _rejects("slide_deck", bad)
 
 
 def test_rejects_정답슬라이드_without_answer_of(deck: dict) -> None:
-    """정답은 반드시 어느 문제의 정답인지 밝힌다 (문제·정답 분리 규칙)."""
     bad = copy.deepcopy(deck)
     for s in bad["slides"]:
-        if s["kind"] == "정답":
+        if s.get("role") == "정답":
             s["answer_of"] = None
             break
     _rejects("slide_deck", bad)
@@ -152,10 +165,27 @@ def test_rejects_정답슬라이드_without_answer_of(deck: dict) -> None:
 def test_rejects_OX_with_wrong_count(deck: dict) -> None:
     bad = copy.deepcopy(deck)
     for s in bad["slides"]:
-        if s["kind"] == "OX":
+        if s.get("role") == "OX":
             s["ox_items"] = s["ox_items"][:3]
             break
     _rejects("slide_deck", bad)
+
+
+def test_rejects_OX_without_rationale(deck: dict) -> None:
+    """OX 는 정답만으로 부족하다 — 왜 그런지가 있어야 정정 지도가 된다."""
+    bad = copy.deepcopy(deck)
+    for s in bad["slides"]:
+        if s.get("role") == "OX":
+            del s["ox_items"][0]["rationale"]
+            break
+    _rejects("slide_deck", bad)
+
+
+def test_accepts_open_slide_kind(deck: dict) -> None:
+    """kind 는 개방형 — 차시별 서사를 막지 않는다 (실물이 고정 순서를 안 따른다)."""
+    ok = copy.deepcopy(deck)
+    ok["slides"][4]["kind"] = "설계 브리핑"
+    validator("slide_deck").validate(ok)
 
 
 def test_rejects_unknown_worksheet_role(worksheet: dict) -> None:
@@ -165,12 +195,12 @@ def test_rejects_unknown_worksheet_role(worksheet: dict) -> None:
 
 
 def test_rejects_verdict_fail_without_fix() -> None:
-    """불합격 판정에는 반드시 수정안과 대상이 따라야 한다."""
     doc = {
         "trace_id": TRACE,
         "attempt": 1,
         "checks": [
-            {"id": f"R{i}", "pass": True, "evidence": "산출물에서 해당 대목을 확인함"} for i in range(1, 8)
+            {"id": f"R{i}", "pass": True, "evidence": "산출물에서 해당 대목을 확인함"}
+            for i in range(1, 8)
         ],
         "verdict": "PASS",
     }
@@ -184,11 +214,10 @@ def test_rejects_verdict_fail_without_fix() -> None:
 
 
 def test_rejects_verdict_with_partial_checks() -> None:
-    """R1~R7 을 전부 채워야 한다 — 일부만 보고 판정하지 않는다."""
     bad = {
         "trace_id": TRACE,
         "attempt": 1,
-        "checks": [{"id": "R1", "pass": True, "evidence": "산출물에서 해당 대목을 확인함"}],
+        "checks": [{"id": "R1", "pass": True, "evidence": "산출물에서 확인함"}],
         "verdict": "PASS",
     }
     _rejects("verdict", bad)
@@ -197,8 +226,8 @@ def test_rejects_verdict_with_partial_checks() -> None:
 # --------------------------------------------- 계약 파일들끼리 어긋나지 않는가
 
 def test_kagan_enum_matches_structures_file() -> None:
-    """lesson_plan 스키마의 케이건 enum 과 kagan_structures.json 이 어긋나면
-    지도안은 통과하는데 활동지 템플릿이 없는 사태가 난다."""
+    """스키마 enum 과 kagan_structures.json 이 어긋나면
+    지도안은 통과하는데 구조 명세가 없는 사태가 난다."""
     kagan = load(CONTRACTS / "kagan_structures.json")
     ids = {s["id"] for s in kagan["structures"]}
 
@@ -207,11 +236,27 @@ def test_kagan_enum_matches_structures_file() -> None:
     enum_ids = {v for v in enum if v is not None}
 
     assert enum_ids == ids, f"불일치: 스키마에만 {enum_ids - ids}, 파일에만 {ids - enum_ids}"
-    assert len(ids) == 9, "학습지 템플릿이 있는 구조는 9종이다"
+
+
+def test_nine_structures_have_templates() -> None:
+    """학습지 템플릿이 있는 구조는 9종. 이 9종만 역할 검증이 가능하다."""
+    kagan = load(CONTRACTS / "kagan_structures.json")
+    templated = [s for s in kagan["structures"] if s["has_template"]]
+    assert len(templated) == 9, [s["id"] for s in templated]
+    for s in templated:
+        assert s["required_item_roles"], f"{s['id']}: 템플릿이 있는데 요구 역할이 비었다"
+        assert s["template"], f"{s['id']}: 템플릿 경로가 없다"
+
+
+def test_templateless_structures_skip_role_check() -> None:
+    """템플릿 없는 구조는 활동지가 자유 형식이므로 요구 역할을 두지 않는다."""
+    kagan = load(CONTRACTS / "kagan_structures.json")
+    for s in kagan["structures"]:
+        if not s["has_template"]:
+            assert s["required_item_roles"] == [], f"{s['id']}: 템플릿 없이 역할을 요구하면 검증이 불가능하다"
 
 
 def test_kagan_required_roles_exist() -> None:
-    """구조가 요구하는 항목 역할이 worksheet 스키마의 role enum 에 전부 있는가."""
     kagan = load(CONTRACTS / "kagan_structures.json")
     declared = set(kagan["item_roles"])
 
@@ -231,17 +276,12 @@ def test_era_enum_matches_palettes() -> None:
     assert plan_eras == deck_eras == palettes
 
 
-def test_confirmed_palette_has_hex() -> None:
-    """confirmed=true 인데 색값이 비어 있으면 검사가 무의미해진다."""
+def test_all_palettes_confirmed() -> None:
+    """2026-07-28 담임 확정. 색값이 비어 있으면 팔레트 검사가 무의미해진다."""
     for era, p in load(CONTRACTS / "era_palettes.json")["eras"].items():
-        if p["confirmed"] and era != "해당없음":
-            assert p["background"], f"{era}: confirmed 인데 background 가 비었다"
-            assert p["primary"], f"{era}: confirmed 인데 primary 가 비었다"
-
-
-def test_fixture_deck_palette_matches_era(deck: dict) -> None:
-    palettes = load(CONTRACTS / "era_palettes.json")["eras"]
-    expected = palettes[deck["era"]]
-    if expected["confirmed"] and deck["era"] != "해당없음":
-        assert deck["palette"]["background"] == expected["background"]
-        assert deck["palette"]["primary"] == expected["primary"]
+        assert p["confirmed"], f"{era}: 미확정 팔레트가 남아 있다"
+        if era == "해당없음":
+            continue
+        assert p["background"], f"{era}: background 가 비었다"
+        assert p["accent"], f"{era}: accent 가 비었다"
+        assert p["palette_name"], f"{era}: palette_name 이 비었다"
