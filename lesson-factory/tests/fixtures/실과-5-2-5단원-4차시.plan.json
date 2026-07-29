@@ -1,0 +1,223 @@
+{
+  "trace_id": "실과-5-2-5단원-4차시",
+  "meta": {
+    "grade": 5,
+    "semester": 2,
+    "subject": "실과",
+    "unit": "5. 생활 속 건설기술",
+    "sub_unit": "친환경 구조물",
+    "period": "4/12",
+    "minutes": 40,
+    "textbook_pages": [77, 77]
+  },
+  "standards": ["6실04-01"],
+  "objectives": [
+    {
+      "id": "O1",
+      "text": "친환경 요소를 넣은 구조물 모형을 구상하고 크기와 재료가 드러나도록 스케치할 수 있다"
+    }
+  ],
+  "success_criteria": [
+    "친환경 요소가 무엇인지 그림에 표시한다",
+    "가로·세로·높이를 숫자로 적는다",
+    "쓸 재료를 이름으로 적는다",
+    "안전을 위해 한 가지를 표시한다"
+  ],
+  "social_skill": "제안하며 돕기",
+  "teaching_model": "설계 중심 학습",
+  "theme": "설계 스튜디오",
+  "era": "해당없음",
+  "activities": [
+    {
+      "id": "A1",
+      "phase": "도입",
+      "minutes": 6,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": null,
+      "teacher_do": "오늘의 설계 의뢰를 제시한다. 다섯 가지 조건과 승인 기준을 함께 읽는다.",
+      "student_do": "조건과 승인 기준을 확인하고, 무엇을 만들어야 하는지 자기 말로 확인한다.",
+      "materials": ["슬라이드", "교과서"],
+      "worksheet_items": [],
+      "engagement_note": "'설계 의뢰'라는 상황이 주어져 그냥 그리는 게 아니라 조건을 맞추는 과제가 된다."
+    },
+    {
+      "id": "A2",
+      "phase": "전개",
+      "minutes": 5,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": "브레인라이팅",
+      "teacher_do": "말하지 않고 각자 아이디어 두 가지(A안·B안)를 그리게 한다.",
+      "student_do": "말없이 A안과 B안을 각각 그린다.",
+      "materials": ["활동지"],
+      "worksheet_items": ["OPTION_A", "OPTION_B"],
+      "engagement_note": "말이 빠른 학생이 판을 지배하지 못하고 전원이 자기 안을 갖게 된다."
+    },
+    {
+      "id": "A3",
+      "phase": "전개",
+      "minutes": 4,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": "짝 코칭",
+      "teacher_do": "질문 → 칭찬 → 제안 순서를 안내하고 90초씩 역할을 바꾸게 한다.",
+      "student_do": "짝의 두 안을 듣고 질문·칭찬·제안을 순서대로 되돌려 준다.",
+      "sentence_frames": [
+        "누가 언제 쓰나요?",
+        "___이 분명해서 좋아요.",
+        "___을 표시하면 더 만들기 쉬워요."
+      ],
+      "materials": ["활동지"],
+      "worksheet_items": ["PAIR_COACH"],
+      "engagement_note": "되돌려 주는 순서가 정해져 있어 '좋은데?'로 끝나지 않는다."
+    },
+    {
+      "id": "A4",
+      "phase": "전개",
+      "minutes": 5,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": "모두미 협의",
+      "teacher_do": "다섯 조건을 놓고 모둠이 하나의 방향으로 합의하게 한다.",
+      "student_do": "각자 안을 내고 모둠 하나의 조건 조합으로 좁힌 뒤 함께 적는다.",
+      "sentence_frames": ["우리 모둠은 ___을 위해 ___을 활용한 구조물을 설계한다."],
+      "materials": ["활동지"],
+      "worksheet_items": ["TEAM_AGREEMENT"],
+      "engagement_note": "합의문을 함께 적어야 해서 한 명이 정하고 끝낼 수 없다."
+    },
+    {
+      "id": "A5",
+      "phase": "전개",
+      "minutes": 9,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": "두 머리 함께",
+      "teacher_do": "최종안을 그리게 하고 치수·재료·안전 표시를 차례로 요구한다. 대신 그려 주지 않는다.",
+      "student_do": "최종안을 그리고 가로·세로·높이를 숫자로, 재료를 이름으로, 안전 표시를 하나 적는다.",
+      "materials": ["활동지"],
+      "worksheet_items": ["FINAL_DRAWING", "SPECIFICATION"],
+      "engagement_note": "그림이 아니라 '만들 수 있는 도면'을 목표로 삼아 정확도가 목적이 된다."
+    },
+    {
+      "id": "A6",
+      "phase": "전개",
+      "minutes": 7,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": "모두미 협의",
+      "teacher_do": "다른 설계 사례 두 개를 먼저 판정하게 한 뒤, 같은 다섯 기준으로 우리 모둠 설계를 검토하게 한다. 빠진 점을 교사가 먼저 말하지 않는다.",
+      "student_do": "사례를 승인/보완으로 판정하고 근거를 쓴 뒤, 우리 설계를 같은 기준으로 검토해 수정 전후를 남긴다.",
+      "materials": ["활동지", "슬라이드"],
+      "worksheet_items": ["DESIGN_REVIEW", "REVISION_EVIDENCE"],
+      "engagement_note": "남의 설계에서 빠진 점을 먼저 찾아 보면 자기 설계의 빈틈이 보인다."
+    },
+    {
+      "id": "A7",
+      "phase": "정리",
+      "minutes": 4,
+      "objective_ids": ["O1"],
+      "source": "교과서",
+      "replaces": null,
+      "rationale": null,
+      "kagan_structure": null,
+      "teacher_do": "번호를 무작위로 불러 모둠 설계를 설명하게 하고, 출구 점검 네 문항으로 마무리한다.",
+      "student_do": "호명되면 20초로 모둠 설계를 설명하고, 출구 점검에 스스로 표시한다.",
+      "materials": ["활동지"],
+      "worksheet_items": ["INDIVIDUAL_EXPLANATION"],
+      "engagement_note": "누가 불릴지 몰라 모둠원 전원이 설명할 수 있어야 한다."
+    }
+  ],
+  "prohibitions": [
+    "정답을 미리 노출하지 않는다 — 검토 사례의 빠진 점을 교사가 먼저 말하지 않는다",
+    "속도 경쟁·순위·탈락 언어를 쓰지 않는다. 먼저 끝내기에 보상하지 않는다",
+    "학생 대신 설계를 그려 주지 않는다",
+    "지우개로 최초안을 없애지 않게 한다 — 수정 전 기록이 평가 자료다"
+  ],
+  "misconceptions": [
+    {
+      "misconception": "'예쁜 그림'이 설계의 핵심이라고 생각한다",
+      "correction": "만들 수 있어야 설계다. 치수와 재료가 없으면 그림일 뿐임을 짚는다"
+    },
+    {
+      "misconception": "친환경이면 환경 영향이 0이라고 생각한다",
+      "correction": "영향을 줄이는 것이지 없애는 것이 아님을 짚는다"
+    }
+  ],
+  "roles": [
+    { "name": "안전 지킴이", "duty": "안전 표시가 빠지지 않았는지 확인한다", "rotates": true },
+    { "name": "기록·설명 담당", "duty": "합의 문장을 적고 호명 시 설명한다", "rotates": true }
+  ],
+  "group_contingency": {
+    "size_3": "짝 코칭에서 한 학생이 두 사람의 안을 연속으로 코칭한다",
+    "size_5": "A안·B안을 한 명이 하나씩 맡아 다섯 안으로 늘린다",
+    "absent": "빈 역할은 이끔이가 겸한다"
+  },
+  "ops": {
+    "prep_minutes": 5,
+    "copies": 24,
+    "duplex": "양면-긴쪽",
+    "cut_count": 0,
+    "no_copy_alternative": "공책 두 쪽을 A안·B안과 최종안으로 나누고 화면의 조건을 옮겨 적는다",
+    "extra_materials": ["자", "연필"]
+  },
+  "assessment": {
+    "method": "산출물평가",
+    "criteria": [
+      "친환경 요소를 넣어 구조물을 구상하는가",
+      "크기와 재료가 드러나도록 스케치하는가",
+      "짝·모둠의 제안을 받아 설계를 고치는가"
+    ],
+    "observations": [
+      {
+        "moment": "A5 최종안 스케치 중",
+        "evidence": "치수를 숫자로 적었는가",
+        "levels": {
+          "도달": "가로·세로·높이를 모두 숫자로 표시한다",
+          "부분도달": "일부만 표시하거나 단위를 빠뜨린다",
+          "지원필요": "치수 개념 없이 그림만 그린다"
+        }
+      },
+      {
+        "moment": "A6 검토·수정 중",
+        "evidence": "수정 전후와 이유가 남아 있는가",
+        "levels": {
+          "도달": "무엇을 왜 고쳤는지 근거를 들어 적는다",
+          "부분도달": "고쳤지만 이유를 적지 못한다",
+          "지원필요": "수정하지 않거나 최초안을 지워 버린다"
+        }
+      }
+    ],
+    "feedback_sentences": [
+      "___의 쓰임이 보여요. 이제 ___의 치수를 숫자로 표시해 봅시다.",
+      "친환경 요소를 찾았네요. 그게 무엇을 줄여 주는지 한 줄로 적어 볼까요?"
+    ],
+    "exit_check": [
+      "내 설계의 친환경 요소를 말할 수 있다",
+      "가로·세로·높이를 숫자로 말할 수 있다",
+      "쓸 재료를 말할 수 있다",
+      "무엇을 왜 고쳤는지 말할 수 있다"
+    ]
+  },
+  "differentiation": {
+    "below": "조건 다섯 가지 중 두 가지만 먼저 맞추게 하고, 치수는 한 변부터 적게 한다.",
+    "above": "같은 조건으로 재료를 바꾼 대안을 하나 더 설계하고 두 안을 비교하게 한다.",
+    "support_frames": ["내 설계는 ___을 줄이기 위해 ___을 썼다."]
+  },
+  "safety_notice": "자와 연필만 사용한다. 자르는 도구는 이 차시에서 쓰지 않는다.",
+  "privacy_notice": null,
+  "sources": ["교과서 77쪽", "실과 5단원 12차시 협동학습 분석표"],
+  "copyright_notice": "신리초 5-5 수업용 · 외부 배포 금지"
+}

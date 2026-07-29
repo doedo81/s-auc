@@ -1,0 +1,85 @@
+{
+  "trace_id": "실과-5-2-5단원-4차시",
+  "title": "친환경 구조물 설계 스튜디오 · 학생용 기록지",
+  "group_size": 4,
+  "items": [
+    {
+      "id": "OPTION_A",
+      "role": "개인쓰기",
+      "for_activity": "A2",
+      "prompt": "A안 — 말하지 않고 혼자 그려 봅시다.",
+      "answer_space": "네모칸",
+      "example": null
+    },
+    {
+      "id": "OPTION_B",
+      "role": "개인쓰기",
+      "for_activity": "A2",
+      "prompt": "B안 — A안과 다른 방법으로 하나 더 그려 봅시다.",
+      "answer_space": "네모칸",
+      "example": null
+    },
+    {
+      "id": "PAIR_COACH",
+      "role": "짝피드백",
+      "for_activity": "A3",
+      "prompt": "짝의 설계에 질문 → 칭찬 → 제안 순서로 적어 줍시다.",
+      "answer_space": "표",
+      "example": "질문: 누가 언제 쓰나요? / 칭찬: 지붕 모양이 분명해서 좋아요. / 제안: 높이를 표시하면 더 만들기 쉬워요."
+    },
+    {
+      "id": "TEAM_AGREEMENT",
+      "role": "모둠합의",
+      "for_activity": "A4",
+      "prompt": "우리 모둠이 합의한 설계 방향을 한 문장으로 적고 모두 확인합시다.",
+      "answer_space": "네모칸",
+      "example": null
+    },
+    {
+      "id": "FINAL_DRAWING",
+      "role": "산출물",
+      "for_activity": "A5",
+      "prompt": "최종안을 그리고 가로·세로·높이를 숫자로 표시합시다.",
+      "answer_space": "네모칸",
+      "example": null
+    },
+    {
+      "id": "SPECIFICATION",
+      "role": "산출물",
+      "for_activity": "A5",
+      "prompt": "쓸 재료와 안전을 위해 한 가지를 적읍시다.",
+      "answer_space": "표",
+      "example": null
+    },
+    {
+      "id": "DESIGN_REVIEW",
+      "role": "자기점검",
+      "for_activity": "A6",
+      "prompt": "다섯 기준으로 우리 설계를 검토하고 승인 또는 보완에 표시합시다.",
+      "answer_space": "체크박스",
+      "example": null
+    },
+    {
+      "id": "REVISION_EVIDENCE",
+      "role": "수정근거",
+      "for_activity": "A6",
+      "prompt": "수정 전 / 수정 후 / 고친 이유를 적읍시다. 최초안은 지우지 않습니다.",
+      "answer_space": "표",
+      "example": null
+    },
+    {
+      "id": "INDIVIDUAL_EXPLANATION",
+      "role": "개인답란",
+      "for_activity": "A7",
+      "prompt": "호명되면 20초로 설명할 내용을 미리 정리해 둡시다.",
+      "answer_space": "줄",
+      "lines": 3,
+      "example": null
+    }
+  ],
+  "teacher_notes": [
+    "A2 순회 지도: 한 안만 그린 학생에게 '다른 방법은 없을까'를 묻는다. 대신 그려 주지 않는다.",
+    "A6 은 사례 판정을 먼저 끝낸 뒤에 우리 설계 검토로 넘어간다. 순서를 바꾸면 기준이 흐려진다."
+  ],
+  "footer": "신리초 5-5 수업용 · 외부 배포 금지"
+}

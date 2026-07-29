@@ -54,6 +54,10 @@ def check_kagan_roles_satisfied(plan: dict, worksheet: dict) -> list[Problem]:
     예: `생각-쓰기-짝-비교` 를 골라 놓고 활동지에 개인쓰기 칸이 없으면
     비교할 산출물이 없어 구조가 성립하지 않는다. 이름만 붙은 협동을 잡아낸다.
 
+    같은 구조를 쓰는 활동이 여러 개면 그 활동들의 칸을 합쳐서 본다.
+    실물에서 하나의 구조가 여러 활동에 걸쳐 실행되기 때문이다
+    (예: 모둠 합의는 앞 활동에서, 호명 발표는 뒤 활동에서).
+
     템플릿이 없는 구조(has_template=false)는 활동지가 자유 형식이므로 건너뛴다.
     """
     problems = []
@@ -62,24 +66,32 @@ def check_kagan_roles_satisfied(plan: dict, worksheet: dict) -> list[Problem]:
     for item in worksheet["items"]:
         roles_by_activity.setdefault(item["for_activity"], set()).add(item["role"])
 
+    by_structure: dict[str, list[str]] = {}
     for a in plan["activities"]:
         structure = a.get("kagan_structure")
         if not structure:
             continue
-        spec = kagan.get(structure)
-        if spec is None:
+        if structure not in kagan:
             problems.append(Problem("kagan_roles", f"활동 {a['id']}: 모르는 구조 '{structure}'"))
             continue
+        by_structure.setdefault(structure, []).append(a["id"])
+
+    for structure, activity_ids in by_structure.items():
+        spec = kagan[structure]
         if not spec.get("has_template"):
             continue
 
-        have = roles_by_activity.get(a["id"], set())
+        have: set[str] = set()
+        for aid in activity_ids:
+            have |= roles_by_activity.get(aid, set())
+
         missing = [r for r in spec["required_item_roles"] if r not in have]
         if missing:
+            where = "·".join(activity_ids)
             problems.append(
                 Problem(
                     "kagan_roles",
-                    f"활동 {a['id']} 는 '{structure}' 인데 활동지에 {missing} 칸이 없음 — "
+                    f"활동 {where} 는 '{structure}' 인데 활동지에 {missing} 칸이 없음 — "
                     f"{spec.get('why', '구조가 성립하지 않는다')}",
                 )
             )

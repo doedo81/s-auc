@@ -93,6 +93,39 @@ def check_standards_exist(plan: dict, db_path: Path) -> list[Problem]:
         conn.close()
 
 
+# NCIC 의 과목명은 교실에서 쓰는 이름과 다르다. 코드로만 조회하면 이 차이가 드러나지 않으므로
+# 과목 대조를 하려면 별도 매핑이 필요하다.
+SUBJECT_ALIASES = {
+    "실과": "실과(기술 · 가정)/정보",
+}
+
+
+def check_standards_subject_match(plan: dict, db_path: Path) -> list[Problem]:
+    """성취기준이 이 과목의 것인가.
+
+    코드 존재 검사가 못 잡는 오류 하나를 더 잡는다 — 사회 수업에 실과 성취기준을 붙인 경우.
+    같은 과목 안에서 엉뚱한 단원의 코드를 붙인 것은 여전히 못 잡는다(LLM 검수 R1/R7 의 몫).
+    """
+    if not db_path.exists():
+        return []
+
+    want = plan["meta"]["subject"]
+    want_db = SUBJECT_ALIASES.get(want, want)
+
+    conn = sqlite3.connect(db_path)
+    try:
+        problems = []
+        for code in plan["standards"]:
+            row = conn.execute("SELECT subject FROM standards WHERE code = ?", (code,)).fetchone()
+            if row is not None and row[0] != want_db:
+                problems.append(
+                    Problem("standards_subject", f"{code} 는 '{row[0]}' 성취기준인데 수업 과목은 '{want}'")
+                )
+        return problems
+    finally:
+        conn.close()
+
+
 def check_replacement_justified(plan: dict) -> list[Problem]:
     """교과서를 벗어난 활동에 근거가 있는가. (스키마와 이중 방어)"""
     problems = []
@@ -114,4 +147,5 @@ def run_all(plan: dict, db_path: Path | None = None) -> list[Problem]:
     )
     if db_path is not None:
         problems += check_standards_exist(plan, db_path)
+        problems += check_standards_subject_match(plan, db_path)
     return problems

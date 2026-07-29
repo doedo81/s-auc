@@ -23,9 +23,13 @@ FIXTURES = ROOT / "tests" / "fixtures"
 DB = ROOT / "curriculum" / "standards.sqlite"
 TRACE = "사회-5-2-2단원-9차시"
 
+# 실물에서 옮긴 골든 픽스처와, 스키마 시연용으로 지어낸 예시 픽스처.
+# 출처 구분은 tests/fixtures/README.md 참조.
+ALL_TRACES = ["실과-5-2-5단원-4차시", "사회-5-2-2단원-9차시"]
 
-def load(suffix: str) -> dict:
-    return json.loads((FIXTURES / f"{TRACE}.{suffix}.json").read_text(encoding="utf-8"))
+
+def load(suffix: str, trace: str = TRACE) -> dict:
+    return json.loads((FIXTURES / f"{trace}.{suffix}.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture
@@ -47,15 +51,28 @@ def ids(problems: list[Problem]) -> set[str]:
     return {p.check for p in problems}
 
 
-# ------------------------------------------------------------ 골든 픽스처 통과
+# ------------------------------------------------------------ 픽스처 전부 통과
 
-def test_golden_plan_clean(plan: dict) -> None:
-    assert plan_checks.run_all(plan) == []
-
-
-def test_golden_cross_clean(plan: dict, worksheet: dict, deck: dict) -> None:
-    problems = cross_checks.run_all(plan, worksheet, deck)
+@pytest.mark.parametrize("trace", ALL_TRACES)
+def test_plan_checks_clean(trace: str) -> None:
+    problems = plan_checks.run_all(load("plan", trace), DB if DB.exists() else None)
     assert problems == [], [str(p) for p in problems]
+
+
+@pytest.mark.parametrize("trace", ALL_TRACES)
+def test_cross_checks_clean(trace: str) -> None:
+    problems = cross_checks.run_all(
+        load("plan", trace), load("worksheet", trace), load("deck", trace)
+    )
+    assert problems == [], [str(p) for p in problems]
+
+
+def test_실과_deck_has_all_answer_pairs() -> None:
+    """실물 4차시는 문제→정답 쌍이 4개(3-4, 5-6, 16-17, 18-19)다."""
+    deck = load("deck", "실과-5-2-5단원-4차시")
+    pairs = [(s["answer_of"], s["index"]) for s in deck["slides"] if s.get("role") == "정답"]
+    assert pairs == [(3, 4), (5, 6), (16, 17), (18, 19)]
+    assert cross_checks.check_answer_separation(deck) == []
 
 
 # ------------------------------------------------------------------ 지도안 검사
@@ -109,6 +126,21 @@ def test_fabricated_standard_rejected(plan: dict) -> None:
     bad = copy.deepcopy(plan)
     bad["standards"] = ["6사99-01"]
     assert "standards_exist" in ids(plan_checks.check_standards_exist(bad, DB))
+
+
+@pytest.mark.skipif(not DB.exists(), reason="scripts/seed_standards.py 를 먼저 실행")
+def test_wrong_subject_standard_rejected(plan: dict) -> None:
+    """사회 수업에 실과 성취기준을 붙인 경우 — 코드는 실재하지만 과목이 다르다."""
+    bad = copy.deepcopy(plan)
+    bad["standards"] = ["6실04-01"]
+    assert "standards_subject" in ids(plan_checks.check_standards_subject_match(bad, DB))
+
+
+@pytest.mark.skipif(not DB.exists(), reason="scripts/seed_standards.py 를 먼저 실행")
+def test_subject_alias_resolved() -> None:
+    """NCIC 과목명 '실과(기술 · 가정)/정보' 와 교실 과목명 '실과' 를 같게 본다."""
+    실과 = load("plan", "실과-5-2-5단원-4차시")
+    assert plan_checks.check_standards_subject_match(실과, DB) == []
 
 
 @pytest.mark.skipif(not DB.exists(), reason="scripts/seed_standards.py 를 먼저 실행")

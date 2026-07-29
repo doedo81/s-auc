@@ -52,16 +52,13 @@ def test_schema_is_wellformed(name: str) -> None:
 
 # ------------------------------------------------------------ 정상 픽스처 통과
 
-def test_valid_plan_passes(plan: dict) -> None:
-    validator("lesson_plan").validate(plan)
+ALL_TRACES = ["실과-5-2-5단원-4차시", "사회-5-2-2단원-9차시"]
 
 
-def test_valid_worksheet_passes(worksheet: dict) -> None:
-    validator("worksheet").validate(worksheet)
-
-
-def test_valid_deck_passes(deck: dict) -> None:
-    validator("slide_deck").validate(deck)
+@pytest.mark.parametrize("trace", ALL_TRACES)
+@pytest.mark.parametrize("kind,schema", [("plan", "lesson_plan"), ("worksheet", "worksheet"), ("deck", "slide_deck")])
+def test_fixture_validates(trace: str, kind: str, schema: str) -> None:
+    validator(schema).validate(load(FIXTURES / f"{trace}.{kind}.json"))
 
 
 # -------------------------------------------------- 불량 픽스처가 실제로 걸리는가
@@ -254,6 +251,23 @@ def test_templateless_structures_skip_role_check() -> None:
     for s in kagan["structures"]:
         if not s["has_template"]:
             assert s["required_item_roles"] == [], f"{s['id']}: 템플릿 없이 역할을 요구하면 검증이 불가능하다"
+
+
+def test_kagan_aliases_are_unambiguous() -> None:
+    """별칭이 다른 구조의 이름과 겹치면 어느 구조를 뜻하는지 알 수 없게 된다.
+
+    별칭은 실물 문서(분석표는 '모둠 합의', 템플릿은 '모두미 협의')의 표기 차이를
+    흡수하려고 둔 것이다. 스키마 enum 은 정식 id 만 받는다.
+    """
+    kagan = load(CONTRACTS / "kagan_structures.json")
+    ids_ = {s["id"] for s in kagan["structures"]}
+
+    seen: dict[str, str] = {}
+    for s in kagan["structures"]:
+        for alias in s.get("aliases", []):
+            assert alias not in ids_, f"'{alias}' 는 이미 정식 구조 이름이다"
+            assert alias not in seen, f"'{alias}' 가 {seen[alias]} 와 {s['id']} 양쪽의 별칭이다"
+            seen[alias] = s["id"]
 
 
 def test_kagan_required_roles_exist() -> None:
