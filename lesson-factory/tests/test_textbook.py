@@ -102,7 +102,7 @@ def test_verified_requires_textbook_source() -> None:
     validator = Draft202012Validator(load(CONTRACTS / "textbook.schema.json"))
     bad = load(REGISTRY / "사회-5-2.json")
     lesson = bad["units"][0]["lessons"][0]
-    assert "교과서" in lesson["source"], "꼬리에 교과서가 들어 있는 상태여야 이 시험이 의미가 있다"
+    assert "지도서" in lesson["source"], "꼬리에 지도서가 들어 있는 상태여야 이 시험이 의미가 있다"
     lesson["verified"] = True  # 주 출처는 여전히 학습지 PDF
     assert list(validator.iter_errors(bad))
 
@@ -130,12 +130,58 @@ def test_publisher_is_recorded() -> None:
 
 
 def test_사회_registry_is_honest_about_coverage() -> None:
-    """지금 등록된 것은 2-1 소단원 7차시뿐이고, 전부 미대조다."""
+    """2단원 14차시가 등록됐고, **차시별 학습목표는 여전히 전부 미대조**다.
+
+    쪽수는 지도서 「연간 지도 계획」으로 맞췄지만 차시별 학습목표는 지도서 각론에 있고
+    그 PDF 는 스캔본이라 못 읽었다. 쪽수를 확인했다고 목표까지 확인한 척하면 안 된다.
+    """
     data = load(REGISTRY / "사회-5-2.json")
     lessons = [le for u in data["units"] for le in u["lessons"]]
-    assert len(lessons) == 7
-    assert all(not le["verified"] for le in lessons)
-    assert all("학습지" in le["source"] for le in lessons)
+    assert len(lessons) == 14
+    assert all(not le["verified"] for le in lessons), "차시별 학습목표는 아직 대조 전이다"
+
+
+def test_지도서_연간계획으로_쪽수를_맞췄다() -> None:
+    """★ 담임 지적(2026-07-29): "학습목표를 찾으려면 지도서를 찾으면 되잖아."
+
+    지도서 앞부속의 「연간 지도 계획」에 48차시 전부의 차시명과 교과서 쪽수가 있었다.
+    2단원 14차시를 그것으로 채웠다.
+    """
+    data = load(REGISTRY / "사회-5-2.json")
+    lessons = [le for u in data["units"] for le in u["lessons"]]
+
+    verified = [le for le in lessons if le["pages_verified"]]
+    assert len(verified) == 12, "31~32차시(11·12)는 경계가 추정이라 내려 뒀다"
+    assert all("지도서" in le["source"] for le in verified)
+
+    # 교과서 차시 번호도 함께 기록한다 — 우리 반 1~14 ↔ 교과서 21~34
+    assert {le["textbook_period"] for le in lessons} >= {"21", "22~23", "24~25", "34"}
+
+
+def test_쪼갠_차시의_쪽수합이_맞는다() -> None:
+    """교과서가 '22~23' 으로 묶은 칸을 선생님이 둘로 쪼갰는데 쪽수 합계가 정확히 맞는다.
+
+    교과서 22~23차시 76~81쪽 = 우리 2차시 76~79 + 3차시 80~81.
+    이게 맞아떨어진다는 것은 선생님의 차시 분할이 교과서 배당을 따랐다는 뜻이다.
+    """
+    lessons = {le["period"]: le
+               for u in load(REGISTRY / "사회-5-2.json")["units"] for le in u["lessons"]}
+
+    for merged, (a, b), span in [("22~23", ("2/14", "3/14"), (76, 81)),
+                                 ("24~25", ("4/14", "5/14"), (82, 86))]:
+        assert lessons[a]["textbook_period"] == lessons[b]["textbook_period"] == merged
+        assert lessons[a]["pages"][0] == span[0]
+        assert lessons[b]["pages"][1] == span[1]
+        assert lessons[a]["pages"][1] + 1 == lessons[b]["pages"][0], "사이가 비거나 겹친다"
+
+
+def test_추정_쪽수는_대조로_표시하지_않는다() -> None:
+    """31~32차시를 반으로 나눈 것은 추정이다. 확인한 척하지 않는다."""
+    lessons = {le["period"]: le
+               for u in load(REGISTRY / "사회-5-2.json")["units"] for le in u["lessons"]}
+    for period in ("11/14", "12/14"):
+        assert not lessons[period]["pages_verified"]
+        assert "추정" in lessons[period]["note"]
 
 
 # ------------------------------------------------------------------ 조회 동작
@@ -179,18 +225,21 @@ def test_실과_소단원_목표가_대조되어_있다() -> None:
 
 
 def test_unregistered_period_only_warns() -> None:
-    """등록된 과목이라도 아직 안 채운 차시는 경고까지다."""
-    사회9 = load(FIXTURES / "사회-5-2-2단원-9차시.plan.json")
-    problems = textbook_checks.run_all(사회9)
+    """아직 안 채운 차시는 경고까지다 (1·3단원 34차시가 미등록)."""
+    미등록 = copy.deepcopy(load(FIXTURES / "사회-5-2-2단원-9차시.plan.json"))
+    미등록["meta"]["period"] = "40/48"
+
+    problems = textbook_checks.run_all(미등록)
     assert not has_errors(problems)
-    assert any("9/14 차시가 없음" in p.message for p in problems)
+    assert any("40/48 차시가 없음" in p.message for p in problems)
 
 
 def test_registered_lesson_is_looked_up(plan: dict) -> None:
     registry = textbook_checks.load_registry("사회", 5, 2)
     lesson = textbook_checks.find_lesson(registry, "1/14")
     assert lesson["pages"] == [70, 75]
-    assert lesson["title"] == "단원 열기 — 유교 문화 축제에 초대합니다"
+    assert lesson["title"] == "단원 도입 — 유교 문화 축제에 초대합니다"
+    assert lesson["textbook_period"] == "21"
 
 
 # --------------------------------------------------- 미대조 → 경고, 대조 → 실패
