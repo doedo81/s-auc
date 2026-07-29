@@ -328,7 +328,7 @@ def check_templated_structure_has_worksheet(plan: dict) -> list[Problem]:
     return problems
 
 
-def run_all(plan: dict, db_path: Path | None = None) -> list[Problem]:
+def run_all(plan: dict, db_path: Path | None = None, registry_root: Path | None = None) -> list[Problem]:
     problems = (
         check_minutes_sum(plan)
         + check_objective_coverage(plan)
@@ -340,7 +340,7 @@ def run_all(plan: dict, db_path: Path | None = None) -> list[Problem]:
         + check_competition_policy(plan)
         + check_slide_ranges(plan)
         + check_templated_structure_has_worksheet(plan)
-        + textbook_checks.run_all(plan)
+        + textbook_checks.run_all(plan, registry_root)
     )
     if db_path is not None:
         problems += check_standards_exist(plan, db_path)

@@ -11,6 +11,7 @@ curriculum/standards.sqlite
 # 버스 DB
 *.db
 *.sqlite3
+lesson_factory.sqlite
 
 # Python
 __pycache__/
