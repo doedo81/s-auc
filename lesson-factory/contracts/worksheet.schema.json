@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://s-auc.local/contracts/worksheet.schema.json",
   "title": "Worksheet",
-  "description": "활동지. 지도안에서 파생되며 새로 창작하지 않는다. 레이아웃은 케이건 템플릿 9종을 채우기만 한다. items[].id 는 지도안 activities[].worksheet_items 와 양방향으로 일치해야 한다(cross_checks.py).",
+  "description": "활동지 한 차시분 = 인쇄물 한 페이지. 지도안에서 파생되며 새로 창작하지 않는다. items[].id 는 지도안 activities[].worksheet_items 와 양방향으로 일치해야 한다(cross_checks.py).\n\n실물은 `사회/활동지/<단원>_<소단원>_학습지.pdf` 처럼 소단원 7차시를 한 묶음으로 인쇄한다. 묶음은 스키마가 아니라 렌더러가 만든다 — Worksheet 객체 N개를 이어 붙이면 그 PDF가 된다.\n\n골격(objective·textbook_pages·hints·closing)은 제작 규칙 §3 이 '매 차시' 요구하는 것이고 items 아래쪽 활동칸만 구조에 따라 달라진다. 스키마에서는 선택으로 두되 checks/ 가 빠진 것을 경고한다 — 실과처럼 규칙이 다른 과목을 막지 않기 위해서다.",
   "type": "object",
   "additionalProperties": false,
   "required": ["trace_id", "title", "items", "footer"],
@@ -11,6 +11,72 @@
     "trace_id": { "type": "string" },
 
     "title": { "type": "string", "minLength": 1 },
+
+    "objective": {
+      "type": ["string", "null"],
+      "description": "🎯 학습 목표. 제작 규칙 §3-1: '학습 목표를 맨 위에 크게 — 학생이 목표를 보고 찾아가 해결하게'. 지도안 objectives[].text 와 같아야 한다."
+    },
+
+    "textbook_pages": {
+      "type": ["array", "null"],
+      "items": { "type": "integer", "minimum": 1 },
+      "minItems": 1,
+      "maxItems": 2,
+      "description": "📖 교과서 쪽. 실물은 '📖먼저 교과서 70~75쪽을 펴요' 안내로 두 번 나온다. 지도안 meta.textbook_pages 와 같아야 한다."
+    },
+
+    "structure_label": {
+      "type": ["string", "null"],
+      "description": "머리에 인쇄되는 '협동학습 …' 줄. 한 차시에 구조가 둘이면 가운뎃점으로 잇는다.",
+      "examples": ["모둠 시계돌리기·돌아가며 쓰기"]
+    },
+
+    "social_skill": {
+      "type": ["string", "null"],
+      "description": "'사회적 기술 · 경청하기'. 지도안 social_skill 과 같아야 한다."
+    },
+
+    "activity_titles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 3 },
+      "description": "'활동 1 · …' '활동 2 · …' 줄. 학생이 페이지를 보고 오늘 무엇을 하는지 아는 자리다.",
+      "examples": [["‘유교 문화 축제에서 동생 찾기’ — 그림 단서로 추측해요"]]
+    },
+
+    "hints": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "slow": { "type": "string", "description": "💡 느린 학습자 힌트 1개 (제작 규칙 §3-5)" },
+        "fast": { "type": "string", "description": "⭐ 빠른 학습자 보너스 1개" }
+      },
+      "description": "지도안 differentiation 을 학생이 읽는 한 줄로 옮긴 것."
+    },
+
+    "closing": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["sentence_prompt", "ox_statements", "result_line"],
+      "properties": {
+        "sentence_prompt": {
+          "type": "string",
+          "description": "'오늘의 한 문장:' 위에 인쇄되는 빈칸 문장. 지도안 closing_sentence.template 과 같다."
+        },
+        "ox_statements": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "string", "minLength": 5 },
+          "description": "OX 4문제의 **문장만**. 제작 규칙 §4: '활동지에는 정답(O/X)을 표시하지 않는다 — 문제만! 정답은 교사용으로.' 그래서 여기는 객체가 아니라 문자열 배열이다 — 정답을 담을 자리를 아예 두지 않았다."
+        },
+        "result_line": {
+          "type": "string",
+          "description": "결과 기록 줄. 실물 문구를 그대로 쓴다.",
+          "examples": ["OX 결과 (  ) - (  ) - (  ) - (  ) → 최종 도착한 동물 (  )"]
+        }
+      },
+      "description": "📝 마무리 루틴. 제작 규칙 §4: '사회는 기억이 중요! 게임으로 흥미를 주되 핵심을 기억에 남긴다.' ① 한 문장 → ② OX 4문제(다 맞혀야 통과)."
+    },
 
     "group_size": {
       "type": "integer",

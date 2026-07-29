@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from checks import Problem, has_errors  # noqa: E402
-from checks import plan_checks  # noqa: E402
+from checks import cross_checks, plan_checks  # noqa: E402
 from render import sean  # noqa: E402
 
 CONTRACTS = ROOT / "contracts"
@@ -38,6 +38,11 @@ TRACE = "사회-5-2-2단원-1차시"
 @pytest.fixture
 def plan() -> dict:
     return json.loads((FIXTURES / f"{TRACE}.plan.json").read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def worksheet() -> dict:
+    return json.loads((FIXTURES / f"{TRACE}.worksheet.json").read_text(encoding="utf-8"))
 
 
 def validator() -> Draft202012Validator:
@@ -64,16 +69,10 @@ def test_real_sean_has_no_errors(plan: dict) -> None:
     assert not has_errors(problems), [str(p) for p in problems]
 
 
-def test_real_sean_warns_about_질문띠지(plan: dict) -> None:
-    """실물이 실제로 걸린 경고 하나 — 검증 사각지대를 기록으로 남긴다.
-
-    활동2는 '돌아가며 쓰기'(템플릿 있는 구조)를 쓰지만 활동지 대신 질문 띠지를 돌린다.
-    구조는 성립하지만 활동지↔구조 역할 검증이 통째로 건너뛰어진다.
-    실패시키지 않는 이유: 종이 형태가 다를 뿐 수업은 정상이기 때문이다.
-    """
-    problems = plan_checks.check_templated_structure_has_worksheet(plan)
-    assert "templated_no_worksheet" in ids(problems)
-    assert all(p.severity == "warn" for p in problems)
+def test_real_sean_has_no_check_errors(plan: dict, worksheet: dict) -> None:
+    """지도안↔활동지 교차 검사도 오류 없이 통과한다 (덱은 아직 없다)."""
+    problems = cross_checks.run_all(plan, worksheet)
+    assert not has_errors(problems), [str(p) for p in problems]
 
 
 def test_minutes_and_slides_line_up(plan: dict) -> None:
@@ -310,6 +309,98 @@ def test_markdown_has_all_seven_sections(plan: dict) -> None:
                     "■ 판서 계획", "■ 지도상의 유의점"):
         assert section in text, section
     assert text.rstrip().endswith("신리초 5-5 수업용 · 외부 배포 금지")
+
+
+# ------------------------------------------------------- 활동지 골격 (실물 PDF)
+#
+# 사회/활동지/2단원_2-1_유교조선_학습지.pdf 1쪽에서 옮긴 것.
+# 매 페이지가 같은 골격을 쓰고 아래쪽 활동칸만 구조에 따라 바뀐다.
+
+def test_worksheet_has_real_skeleton(worksheet: dict) -> None:
+    assert worksheet["objective"].startswith("유교 문화가 조선 사람들의")
+    assert worksheet["textbook_pages"] == [70, 75]
+    assert worksheet["structure_label"] == "모둠 시계돌리기·돌아가며 쓰기"
+    assert worksheet["hints"]["slow"] and worksheet["hints"]["fast"]
+    assert len(worksheet["closing"]["ox_statements"]) == 4
+    assert "최종 도착한 동물" in worksheet["closing"]["result_line"]
+
+
+def test_worksheet_ox_carries_no_answers(worksheet: dict) -> None:
+    """제작 규칙 §4: '활동지에는 정답(O/X)을 표시하지 않는다 — 문제만!'
+
+    스키마가 ox_statements 를 문자열 배열로 둬서 정답을 담을 자리를 아예 없앴다.
+    실물 약안 ④ 에는 '(O)' '(X — 한양)' 가 붙어 있는데, 그건 교사용이다.
+    """
+    assert cross_checks.check_worksheet_answers_hidden(worksheet) == []
+    for statement in worksheet["closing"]["ox_statements"]:
+        assert "(O)" not in statement and "(X" not in statement
+
+
+def test_ox_answer_leak_into_worksheet_detected(worksheet: dict) -> None:
+    """약안 ④ 를 그대로 복사해 오면 정답이 딸려 온다 — 실제로 일어나기 쉬운 실수."""
+    bad = copy.deepcopy(worksheet)
+    bad["closing"]["ox_statements"][2] = "조선의 도읍은 개경이었다. (X — 한양)"
+    problems = cross_checks.check_worksheet_answers_hidden(bad)
+    assert "worksheet_answers" in ids(problems)
+    assert has_errors(problems)
+
+
+def test_textbook_page_drift_detected(plan: dict, worksheet: dict) -> None:
+    """활동지 교과서 쪽이 지도안과 어긋나면 학생이 다른 쪽을 편다."""
+    bad = copy.deepcopy(worksheet)
+    bad["textbook_pages"] = [76, 79]
+    problems = cross_checks.check_worksheet_skeleton(plan, bad)
+    assert "worksheet_skeleton" in ids(problems)
+    assert has_errors(problems)
+
+
+def test_closing_sentence_drift_detected(plan: dict, worksheet: dict) -> None:
+    """학생이 쓰는 빈칸 문장이 지도안과 다르면 정리 단계가 어긋난다."""
+    bad = copy.deepcopy(worksheet)
+    bad["closing"]["sentence_prompt"] = "조선은 ____의 나라다."
+    problems = cross_checks.check_worksheet_skeleton(plan, bad)
+    assert "worksheet_skeleton" in ids(problems)
+    assert has_errors(problems)
+
+
+def test_objective_wording_drift_only_warns(plan: dict, worksheet: dict) -> None:
+    """★ 실물에서 검출된 드리프트.
+
+    세안 머리표는 '…알고, **단원** 탐구 질문을' 이고 약안·학습지는 '…알고 탐구 질문을' 이다.
+    낱말 하나 차이라 수업은 그대로 굴러가므로 경고로 둔다 —
+    쉼표까지 실패시키면 선생님이 도구와 쉼표 싸움을 하게 된다.
+    """
+    problems = cross_checks.check_worksheet_skeleton(plan, worksheet)
+    assert "worksheet_skeleton" in ids(problems)
+    assert not has_errors(problems)
+    assert any("단원 탐구 질문" in p.message for p in problems)
+
+
+def test_punctuation_difference_is_not_drift(plan: dict, worksheet: dict) -> None:
+    ok = copy.deepcopy(worksheet)
+    ok["objective"] = plan["objectives"][0]["text"].replace(",", "").replace(" ", "")
+    assert not any(
+        "학습 목표 문구가 다름" in p.message
+        for p in cross_checks.check_worksheet_skeleton(plan, ok)
+    )
+
+
+def test_skeleton_absence_only_warns(plan: dict, worksheet: dict) -> None:
+    """골격이 통째로 없어도 경고까지다 — 실과처럼 규칙이 다른 과목을 막지 않는다."""
+    bare = copy.deepcopy(worksheet)
+    for field in ("objective", "textbook_pages", "hints", "closing"):
+        bare.pop(field)
+    problems = cross_checks.check_worksheet_skeleton(plan, bare)
+    assert len(problems) == 4
+    assert not has_errors(problems)
+
+
+def test_worksheet_now_covers_the_활동지_gap(plan: dict) -> None:
+    """활동지를 찾기 전에는 이 차시가 '활동지 없음' 경고를 달고 있었다.
+
+    실물 학습지 PDF 를 찾아 넣으면서 경고가 사라졌다 — 경고가 옳았다는 뜻이다.
+    """
+    assert plan_checks.check_templated_structure_has_worksheet(plan) == []
 
 
 def test_docx_builds() -> None:

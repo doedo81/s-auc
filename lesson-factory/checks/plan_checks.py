@@ -294,25 +294,25 @@ def check_slide_ranges(plan: dict) -> list[Problem]:
 
 
 def check_templated_structure_has_worksheet(plan: dict) -> list[Problem]:
-    """학습지 템플릿이 있는 구조를 쓰면서 활동지가 없으면 알린다.
+    """활동지 칸으로 검증 가능한 구조를 쓰면서 활동지가 없으면 알린다.
 
-    실패가 아니라 경고다. 실물 1차시 활동2는 '돌아가며 쓰기'(템플릿 있음)를 쓰지만
-    활동지 대신 '질문 띠지'를 돌린다 — 종이 형태만 다를 뿐 구조는 성립한다.
+    실패가 아니라 경고다. 실물 1차시 활동2는 '돌아가며 쓰기'를 쓰지만 활동지 대신
+    '질문 띠지'를 돌린다 — 종이 형태만 다를 뿐 구조는 성립한다.
     다만 이 경우 활동지↔구조 역할 검증(cross_checks)이 통째로 건너뛰어지므로,
     검증 사각지대가 생겼다는 사실 자체를 남긴다.
     """
     kagan = json.loads((CONTRACTS / "kagan_structures.json").read_text(encoding="utf-8"))
-    templated = {s["id"] for s in kagan["structures"] if s["has_template"]}
+    verifiable = {s["id"] for s in kagan["structures"] if s["worksheet_verifiable"]}
 
     problems = []
     for a in plan["activities"]:
         structure = a.get("kagan_structure")
-        if structure in templated and not a.get("worksheet_items"):
+        if structure in verifiable and not a.get("worksheet_items"):
             problems.append(
                 Problem(
                     "templated_no_worksheet",
-                    f"활동 {a['id']} 는 '{structure}'(템플릿 있음)인데 활동지 항목이 없어 "
-                    "구조↔활동지 역할 검증을 건너뛴다",
+                    f"활동 {a['id']} 는 '{structure}'(활동지 칸으로 검증 가능한 구조)인데 "
+                    "활동지 항목이 없어 구조↔활동지 역할 검증을 건너뛴다",
                     severity="warn",
                 )
             )

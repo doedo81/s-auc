@@ -60,11 +60,28 @@ def test_plan_checks_clean(trace: str) -> None:
 
 
 @pytest.mark.parametrize("trace", ALL_TRACES)
-def test_cross_checks_clean(trace: str) -> None:
+def test_cross_checks_have_no_errors(trace: str) -> None:
     problems = cross_checks.run_all(
         load("plan", trace), load("worksheet", trace), load("deck", trace)
     )
-    assert problems == [], [str(p) for p in problems]
+    assert not has_errors(problems), [str(p) for p in problems]
+
+
+@pytest.mark.parametrize("trace", ALL_TRACES)
+def test_old_fixtures_warn_about_missing_skeleton(trace: str) -> None:
+    """이 두 픽스처는 활동지 골격(학습 목표·교과서 쪽·힌트·마무리 루틴)이 없다.
+
+    사회 5-2 제작 규칙 §3·§4 가 '매 차시' 요구하는 것들인데, 두 픽스처를 만들 때는
+    실물 학습지 PDF 를 아직 찾지 못해 담지 못했다. 경고가 그 사실을 들고 있다 —
+    조용히 통과시키면 '골격이 없어도 된다'가 되어 버린다.
+
+    실물을 확보한 사회 1차시는 이 경고가 없다(tests/test_sean.py).
+    """
+    problems = cross_checks.check_worksheet_skeleton(
+        load("plan", trace), load("worksheet", trace)
+    )
+    assert {p.check for p in problems} == {"worksheet_skeleton"}
+    assert not has_errors(problems)
 
 
 def test_실과_deck_has_all_answer_pairs() -> None:

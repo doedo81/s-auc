@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -235,22 +236,54 @@ def test_kagan_enum_matches_structures_file() -> None:
     assert enum_ids == ids, f"불일치: 스키마에만 {enum_ids - ids}, 파일에만 {ids - enum_ids}"
 
 
-def test_nine_structures_have_templates() -> None:
-    """학습지 템플릿이 있는 구조는 9종. 이 9종만 역할 검증이 가능하다."""
+def test_nine_structures_are_worksheet_verifiable() -> None:
+    """활동지 칸으로 검증 가능한 구조는 9종. 이 9종만 역할 검증이 돈다."""
     kagan = load(CONTRACTS / "kagan_structures.json")
-    templated = [s for s in kagan["structures"] if s["has_template"]]
-    assert len(templated) == 9, [s["id"] for s in templated]
-    for s in templated:
-        assert s["required_item_roles"], f"{s['id']}: 템플릿이 있는데 요구 역할이 비었다"
-        assert s["template"], f"{s['id']}: 템플릿 경로가 없다"
+    verifiable = [s for s in kagan["structures"] if s["worksheet_verifiable"]]
+    assert len(verifiable) == 9, [s["id"] for s in verifiable]
+    for s in verifiable:
+        assert s["required_item_roles"], f"{s['id']}: 검증 가능하다면서 요구 역할이 비었다"
 
 
-def test_templateless_structures_skip_role_check() -> None:
-    """템플릿 없는 구조는 활동지가 자유 형식이므로 요구 역할을 두지 않는다."""
+def test_unverifiable_structures_skip_role_check() -> None:
+    """자유 형식 구조는 요구 역할을 두지 않는다 — 검증할 근거가 없기 때문이다."""
     kagan = load(CONTRACTS / "kagan_structures.json")
     for s in kagan["structures"]:
-        if not s["has_template"]:
-            assert s["required_item_roles"] == [], f"{s['id']}: 템플릿 없이 역할을 요구하면 검증이 불가능하다"
+        if not s["worksheet_verifiable"]:
+            assert s["required_item_roles"] == [], f"{s['id']}: 근거 없이 역할을 요구하면 검증이 불가능하다"
+
+
+def test_no_phantom_file_paths() -> None:
+    """계약 파일이 존재하지 않는 파일을 가리키지 않는가.
+
+    2026-07-29 드라이브 전수 조사에서 실제로 걸린 문제다. 구조 9종이
+    `templates/케이건-*-v1.docx` 를 가리키고 있었는데 그런 파일은 만들어진 적이 없다.
+    "미착수"라고 적어 둔 항목이 사실은 존재하지 않는 것을 기다리고 있었다.
+
+    앞으로 계약 파일에 경로를 적으려면 그 파일이 저장소에 있어야 한다.
+    """
+    root = CONTRACTS.parent
+    for name in ("kagan_structures.json", "era_palettes.json"):
+        text = (CONTRACTS / name).read_text(encoding="utf-8")
+        for match in re.finditer(r'"([^"]*\.(?:docx|pptx|pdf|png|xlsx))"', text):
+            path = match.group(1)
+            assert (root / path).exists(), f"{name} 가 없는 파일을 가리킴: {path}"
+
+
+def test_structure_cards_are_student_facing() -> None:
+    """구조 카드는 학생이 읽고 교실 벽에 붙이는 것이다 (00_협동학습_구조_사용법.pdf).
+
+    카드가 있는 구조는 '언제 쓰는지 · 무엇을 하는지 · 무엇을 약속하는지' 셋을 다 갖춰야 한다.
+    약속이 빠지면 절차만 남아 협동이 아니라 작업 지시가 된다.
+    """
+    kagan = load(CONTRACTS / "kagan_structures.json")
+    carded = [s for s in kagan["structures"] if s.get("card")]
+    assert len(carded) == 10, [s["id"] for s in carded]
+    for s in carded:
+        card = s["card"]
+        assert card["when"], f"{s['id']}: '이럴 때 써요' 가 비었다"
+        assert len(card["student_steps"]) >= 2, f"{s['id']}: 학생용 절차가 너무 짧다"
+        assert card["promise"].endswith(("요.", "!", "기.")), f"{s['id']}: 약속이 학생 말투가 아니다"
 
 
 def test_kagan_aliases_are_unambiguous() -> None:
