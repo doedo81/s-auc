@@ -140,17 +140,42 @@ def test_사회_registry_is_honest_about_coverage() -> None:
 
 # ------------------------------------------------------------------ 조회 동작
 
-def test_unregistered_subject_only_warns(plan: dict) -> None:
+def test_unregistered_subject_only_warns() -> None:
     """★ '계속 보충해줄게' 를 지탱하는 동작.
 
-    실과·국어·수학은 아직 교과서가 없다. 없는 것을 실패로 만들면 다른 과목을
+    국어·수학·영어는 아직 교과서가 없다. 없는 것을 실패로 만들면 그 과목을
     시작조차 못 하고, 그러면 등록부를 지어내서 채우게 된다.
+
+    (실과는 2026-07-29 에 등록됐다 — 미등록 과목이 실제로 하나씩 줄어들고 있으므로
+    이 시험은 등록될 리 없는 합성 지도안으로 돌린다. 픽스처를 쓰면 다음에 그 과목이
+    등록되는 순간 또 깨진다.)
     """
-    실과 = load(FIXTURES / "실과-5-2-5단원-4차시.plan.json")
-    problems = textbook_checks.run_all(실과)
+    국어 = copy.deepcopy(load(FIXTURES / "실과-5-2-5단원-4차시.plan.json"))
+    국어["meta"]["subject"] = "국어"
+
+    problems = textbook_checks.run_all(국어)
     assert "textbook" in ids(problems)
     assert not has_errors(problems)
     assert any("등록되지 않음" in p.message for p in problems)
+
+
+def test_실과도_등록되어_통과한다() -> None:
+    """★ 등록부가 늘어난 결과 (2026-07-29 "실과 사회는 교과서 pdf").
+
+    이 시험은 원래 '실과는 미등록이라 경고만 난다' 였다. 실과 교과서 PDF 를 열어
+    등록하고 나니 경고가 사라졌다 — 등록부가 자라면 경고가 줄어드는 것이 정상이다.
+    """
+    실과 = load(FIXTURES / "실과-5-2-5단원-4차시.plan.json")
+    assert textbook_checks.run_all(실과) == []
+
+
+def test_실과_소단원_목표가_대조되어_있다() -> None:
+    """미래엔 실과는 소단원 학습목표를 **하나** 준다 (사회는 둘)."""
+    unit = load(REGISTRY / "실과-5-2.json")["units"][0]
+    assert len(unit["objectives"]) == 1
+    assert unit["objectives"][0]["verified"]
+    assert unit["objectives"][0]["source"].startswith("교과서 76쪽")
+    assert "건설 기술의 가치" in unit["objectives"][0]["text"]
 
 
 def test_unregistered_period_only_warns() -> None:

@@ -59,16 +59,23 @@ def test_plan_checks_have_no_errors(trace: str) -> None:
     assert not has_errors(problems), [str(p) for p in problems]
 
 
-@pytest.mark.parametrize("trace", ALL_TRACES)
-def test_unregistered_textbook_only_warns(trace: str) -> None:
-    """이 두 픽스처는 교과서 등록부에 없다 — 실과는 과목째로, 사회 9차시는 차시가.
+def test_unregistered_period_only_warns() -> None:
+    """사회 9차시는 아직 등록부에 없다(2-2 소단원 미등록) — 경고까지만.
 
-    경고까지만 내는 것이 설계다. 담임이 "지금은 사회 교과서만 있는데 계속 보충해줄게"
-    라고 했으므로, 없는 것을 실패로 만들면 다른 과목을 시작할 수 없다.
+    담임이 "계속 보충해줄게" 라고 했으므로, 없는 것을 실패로 만들면 진도를 못 나간다.
     """
-    problems = plan_checks.run_all(load("plan", trace), DB if DB.exists() else None)
+    problems = plan_checks.run_all(load("plan", "사회-5-2-2단원-9차시"), DB if DB.exists() else None)
     assert any(p.check == "textbook" for p in problems)
     assert not has_errors(problems)
+
+
+def test_registered_textbook_stops_warning() -> None:
+    """실과 4차시는 교과서를 열어 등록했으므로 교과서 경고가 없다.
+
+    등록부가 자라면 경고가 줄어든다 — 이 시험이 그 방향을 지킨다.
+    """
+    problems = plan_checks.run_all(load("plan", "실과-5-2-5단원-4차시"), DB if DB.exists() else None)
+    assert not any(p.check == "textbook" for p in problems), [str(p) for p in problems]
 
 
 @pytest.mark.parametrize("trace", ALL_TRACES)
