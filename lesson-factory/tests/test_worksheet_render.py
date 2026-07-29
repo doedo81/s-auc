@@ -76,8 +76,8 @@ def test_row_labels_are_questions_not_answers(sheet: dict) -> None:
     활동이 통째로 사라진다 — 렌더러가 이 필드를 쓰기 시작하면서 생긴 위험이다.
     """
     item = next(i for i in sheet["items"] if i["id"] == "BUILDING_VIRTUE")
-    assert item["row_labels"] == ["흥인지문", "돈의문", "숭례문", "보신각"]
-    for virtue in ("인", "의", "예", "신", "어짊", "의로움"):
+    assert item["row_labels"] == ["흥인지문", "돈의문", "숭례문"]
+    for virtue in ("인", "의", "예", "어짊", "의로움"):
         assert virtue not in item["columns"]
 
 

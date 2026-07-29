@@ -99,7 +99,7 @@ def test_game_is_runnable_from_the_game_block_alone(plan: dict) -> None:
     """담임 판정 기준. 게임 명세만 떼어 읽어도 교실에서 굴릴 수 있어야 한다."""
     game = next(a["game"] for a in plan["activities"] if a["id"] == "A2")
     assert game["answer"], "정답이 없으면 교사가 학생 답을 판정할 수 없다"
-    assert "보신각" in game["answer"]          # 교과서에 없는 넷째 건물까지 답이 있다
+    assert game["rounds"] == len(game["answer"].split(" · ")) == 3
     assert game["steps"] and game["sentence_stem"]
     assert game["teacher_script"]
     assert game["competition_policy"] == "경쟁없음"
@@ -119,14 +119,22 @@ def test_game_answer_never_reaches_the_worksheet(worksheet: dict) -> None:
 
 # ------------------------------------------------------------------ 실물에서 잡은 어긋남 2건
 
-def test_textbook_only_asks_for_three_virtues(plan: dict) -> None:
-    """교과서 77쪽은 '인·의·예' 셋, 우리 활동지는 보신각(신)까지 넷.
+def test_follows_the_textbook_three_virtues(plan: dict, worksheet: dict) -> None:
+    """교과서 77쪽대로 '인·의·예' 셋만 찾는다.
 
-    슬라이드로 보충한다는 사실이 세안에 적혀 있지 않으면, 교사는 교과서에 없는 건물을
-    학생이 못 찾는 이유를 수업 중에야 알게 된다.
+    초안은 학습지를 따라 보신각(신)까지 넷이었다. 신은 교과서에 없어 슬라이드로 따로
+    보충해야 했고, 담임 판정(2026-07-29)으로 뺐다 — *"짝 점검이니까 셋으로 해도 됨"*.
+    짝 점검에서 학습목표에 닿게 하는 것은 건물 수가 아니라 왜 그 덕목인지 말하는 쪽이다.
+
+    뺀 흔적은 `cautions` 에 남긴다. 왜 넷이 아닌지 모르면 다음에 또 넷으로 돌아간다.
     """
-    cautions = " ".join(next(a for a in plan["activities"] if a["id"] == "A2")["cautions"])
-    assert "보신각" in cautions and "슬라이드" in cautions
+    a2 = next(a for a in plan["activities"] if a["id"] == "A2")
+    assert "보신각" not in a2["game"]["answer"]
+    for item in worksheet["items"]:
+        assert "보신각" not in (item.get("row_labels") or [])
+
+    cautions = " ".join(a2["cautions"])
+    assert "보신각" in cautions and "담임 판정" in cautions
     assert "숙정문" in cautions                  # '정'은 '지'가 아니다
 
 
