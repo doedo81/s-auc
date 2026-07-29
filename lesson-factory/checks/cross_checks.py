@@ -223,6 +223,48 @@ def check_worksheet_answers_hidden(worksheet: dict) -> list[Problem]:
     return problems
 
 
+def check_game_answer_hidden(plan: dict, worksheet: dict) -> list[Problem]:
+    """게임 정답이 학생 활동지에 인쇄되지 않았는가.
+
+    `game.answer` 는 교사용이다. 정답을 지도안에 적어 두는 것과 활동지에 인쇄하는 것은
+    전혀 다른 일인데, 활동지를 지도안에서 파생시키다 보면 그대로 흘러 들어가기 쉽다.
+    OX 정답에 이미 같은 규칙이 있고(제작 규칙 §4), 게임 정답이라고 다를 이유가 없다.
+
+    발문·문장틀·활동 제목만 본다. teacher_notes 와 example 은 학생용 인쇄본에
+    나가지 않으므로 검사하지 않는다.
+    """
+    answers = [
+        (a["id"], a["game"]["answer"])
+        for a in plan["activities"]
+        if a.get("game") and a["game"].get("answer")
+    ]
+    if not answers:
+        return []
+
+    student_text = [
+        *(i["prompt"] for i in worksheet["items"]),
+        *(worksheet.get("activity_titles") or []),
+        *((worksheet.get("hints") or {}).get(k, "") for k in ("slow", "fast")),
+    ]
+    closing = worksheet.get("closing")
+    if closing:
+        student_text.append(closing["sentence_prompt"])
+        student_text.extend(closing["ox_statements"])
+
+    problems = []
+    for aid, answer in answers:
+        for text in student_text:
+            if answer in text:
+                problems.append(
+                    Problem(
+                        "game_answer",
+                        f"활동 {aid} 게임 정답 '{answer}' 이 학생 활동지에 인쇄됨 — 정답은 교사용이다",
+                    )
+                )
+                break
+    return problems
+
+
 def _normalize_text(s: str) -> str:
     """구두점·공백 차이는 드리프트가 아니다.
 
@@ -303,6 +345,7 @@ def run_all(plan: dict, worksheet: dict, deck: dict | None = None) -> list[Probl
         check_worksheet_item_refs(plan, worksheet)
         + check_kagan_roles_satisfied(plan, worksheet)
         + check_worksheet_answers_hidden(worksheet)
+        + check_game_answer_hidden(plan, worksheet)
         + check_worksheet_skeleton(plan, worksheet)
         + print_checks.run_all(plan, worksheet)
     )

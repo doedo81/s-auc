@@ -191,6 +191,15 @@ def check_game_runnable(plan: dict) -> list[Problem]:
             problems.append(
                 Problem("game_runnable", f"활동 {a['id']} 게임 '{game['name']}': 절차만 있고 문장틀도 교사 대사도 없음")
             )
+        if game.get("answer_format") and not game.get("answer"):
+            problems.append(
+                Problem(
+                    "game_runnable",
+                    f"활동 {a['id']} 게임 '{game['name']}': 답의 형태({game['answer_format']})는 정했는데 "
+                    "정답 자체가 없음 — 교사가 학생 답을 판정할 수 없다",
+                    severity="review",
+                )
+            )
         if not game.get("clue_source") and game.get("answer_format"):
             problems.append(
                 Problem(

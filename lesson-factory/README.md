@@ -82,10 +82,28 @@
 | 검사 | 잡는 것 |
 |---|---|
 | `game_runnable` | 절차만 있고 문장틀도 교사 대사도 없음 → 게임이 아니라 게임 이름 |
+| `game_runnable` (review) | 답의 **형태**는 정했는데 **정답**이 없음 → 교사가 채점 못 함 |
+| `game_answer` | 게임 정답이 학생 활동지에 인쇄됨 |
 | `game_materials` | 게임 준비물이 자료 목록에 없음 → **실물 세안이 실제로 놓쳤다** (단서 종이) |
 | `competition_policy` | '순위 금지'라 써 놓고 순위를 공개하는 게임 |
 | `dialogue` | 교사 발화가 한 줄도 없음 / **절반만 세안** |
 | `slide_range` | 슬라이드 배정이 겹치거나 빔 |
+
+### 물어봐야 했다는 것이 곧 구멍이었다 — `game.answer`
+
+담임에게 "1차시 게임 답이 체험관이냐 사람이냐" 를 물어야 했다. 답은 **선비 문화 체험관**.
+그런데 **물어봐야 했다는 사실 자체가 스키마의 구멍**이었다.
+
+`answer_format` 은 `○○ 체험관` 이라는 **틀**만 알려 줄 뿐 무엇이 답인지 말해 주지 않는다.
+게임 명세만 읽은 교사가 학생 답을 판정할 수 없으니, 담임의 R8 기준
+**"게임 부분만 따로 읽어도 굴릴 수 있는가"** 가 바로 거기서 무너진다.
+
+`game.answer` 를 넣었다. 정리 OX 게임도 마찬가지여서 `O · O · X(한양) · O` 를 채웠다 —
+그전까지는 활동지 `teacher_notes` 에만 있어서 게임 블록만 읽은 교사는 채점을 못 했다.
+
+**정답은 교사용이다.** 활동지로 새어 나가면 `check_game_answer_hidden` 이 잡는다
+(OX 정답에 이미 같은 규칙이 있고, 게임 정답이라고 다를 이유가 없다).
+확산적 활동은 `answer_format` 과 `answer` 를 **둘 다** 비운다.
 
 `scoring` 과 `win_condition` 은 **일부러 선택**이다. 실물 활동1이 비워 두었고
 (*※정답 찾기보다 "그림 속 유교 문화 요소 발견"이 목적*), 억지로 요구하면 확산적 활동이
@@ -360,7 +378,7 @@ pip install -r requirements.txt
 
 python3 scripts/seed_standards.py          # NCIC xlsx → sqlite (611개, 멱등)
 python3 scripts/seed_standards.py --check 6사05-02   # 코드 하나 조회
-python3 -m pytest tests/ -q                # 146개 통과 — LLM 호출 0회, 비용 0원
+python3 -m pytest tests/ -q                # 152개 통과 — LLM 호출 0회, 비용 0원
 python3 -m pytest tests/ -q -k drift       # 드리프트 검출만
 
 # 세안 보기 (dry_run — 화면에만 출력)

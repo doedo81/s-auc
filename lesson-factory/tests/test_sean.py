@@ -411,6 +411,65 @@ def test_worksheet_now_covers_the_활동지_gap(plan: dict) -> None:
     assert plan_checks.check_templated_structure_has_worksheet(plan) == []
 
 
+# ------------------------------------------------------- 게임 정답 (교사용)
+#
+# 담임 확인(2026-07-29): 답은 **선비 문화 체험관**.
+# 물어봐야 했다는 것 자체가 스키마의 구멍이었다 — answer_format 은 '○○ 체험관' 이라는
+# 틀만 알려 줄 뿐 무엇이 답인지 말해 주지 않는다. 게임 명세만 읽은 교사가 학생 답을
+# 판정할 수 없으니 R8('게임 부분만 따로 읽어도 굴릴 수 있는가')이 거기서 무너진다.
+
+def test_game_answer_is_recorded(plan: dict) -> None:
+    game = next(a["game"] for a in plan["activities"] if a["id"] == "A2")
+    assert game["answer_format"] == "○○ 체험관"
+    assert game["answer"] == "선비 문화 체험관"
+
+
+def test_answer_format_without_answer_goes_to_teacher(plan: dict) -> None:
+    """답의 형태만 정하고 정답을 비워 두면 담임 확인으로 올린다.
+
+    실패가 아니라 review 다 — 확산적 활동은 정답이 없을 수 있고, 그 판단은 사람이 한다.
+    """
+    bad = copy.deepcopy(plan)
+    bad["activities"][1]["game"]["answer"] = None
+    problems = plan_checks.check_game_runnable(bad)
+    assert "game_runnable" in ids(problems)
+    assert not has_errors(problems)
+    assert needs_review(problems)
+
+
+def test_divergent_game_needs_no_answer(plan: dict) -> None:
+    """답의 형태 자체가 없으면 정답도 요구하지 않는다 — 정답이 목적이 아닌 활동을 막지 않는다."""
+    ok = copy.deepcopy(plan)
+    game = ok["activities"][1]["game"]
+    game["answer_format"] = None
+    game["answer"] = None
+    assert not any("정답 자체가 없음" in p.message for p in plan_checks.check_game_runnable(ok))
+
+
+def test_game_answer_leak_into_worksheet_detected(plan: dict, worksheet: dict) -> None:
+    """★ 정답이 학생 활동지로 새는 것을 막는다.
+
+    활동지를 지도안에서 파생시키다 보면 그대로 흘러 들어가기 쉽다.
+    OX 정답에 이미 같은 규칙이 있고(제작 규칙 §4), 게임 정답이라고 다를 이유가 없다.
+    """
+    bad = copy.deepcopy(worksheet)
+    bad["items"][0]["prompt"] = "태웅이는 선비 문화 체험관에 있어요. 왜 그럴까요? →"
+    problems = cross_checks.check_game_answer_hidden(plan, bad)
+    assert "game_answer" in ids(problems)
+    assert has_errors(problems)
+
+
+def test_game_answer_stays_off_the_real_worksheet(plan: dict, worksheet: dict) -> None:
+    assert cross_checks.check_game_answer_hidden(plan, worksheet) == []
+
+
+def test_teacher_notes_may_hold_the_answer(plan: dict, worksheet: dict) -> None:
+    """교사용 자리에는 정답이 있어도 된다 — 학생 인쇄본에 안 나가기 때문이다."""
+    ok = copy.deepcopy(worksheet)
+    ok["teacher_notes"].append("정답: 선비 문화 체험관")
+    assert cross_checks.check_game_answer_hidden(plan, ok) == []
+
+
 # ------------------------------------------------------------------ 인쇄량
 #
 # 담임 요구(2026-07-29): "애들한테 나눠줄 때는 최대한 한 장이나 두 장 양면 복사할 수 있게.
