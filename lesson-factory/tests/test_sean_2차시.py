@@ -76,8 +76,20 @@ def test_fits_one_page_per_student(plan: dict, worksheet: dict) -> None:
 
 
 def test_minutes_are_forty_not_thirty_five(plan: dict) -> None:
-    """약안 2차시는 5+15+7+8=35분이다. 세안으로 옮기며 전개2를 12분으로 잡아 40분을 채웠다."""
+    """약안 2차시는 5+15+7+8=35분이다. 세안으로 옮기며 전개2를 늘려 40분을 채웠다."""
     assert sum(a["minutes"] for a in plan["activities"]) == 40
+
+
+def test_time_moved_to_the_slower_activity(plan: dict) -> None:
+    """전개2가 전개1보다 길다.
+
+    초안은 15/12 였다. 건물이 넷에서 셋으로 줄어 활동1이 짧아졌고, 담임 지적
+    (2026-07-29 *"활동지 돌리는 게 시간이 더 오래 걸릴 수 있어"*)대로 그 3분을
+    활동2로 옮겨 12/15 가 됐다. 각자의 활동지를 돌리면 종이가 네 배로 움직인다.
+    """
+    minutes = {a["stage_label"]: a["minutes"] for a in plan["activities"]}
+    assert minutes["전개 활동2"] > minutes["전개 활동1"]
+    assert [minutes[k] for k in ("도입", "전개 활동1", "전개 활동2", "정리")] == [5, 12, 15, 8]
 
 
 # ------------------------------------------------------------------ 교과서·지도서 대조
