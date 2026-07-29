@@ -88,6 +88,8 @@ def all_materials(plan: dict) -> list[str]:
     """머리표 '학습 자료' — 활동별 ★ 와 게임 준비물을 합쳐 중복을 없앤다.
 
     슬라이드 번호(`슬라이드 5~7`)는 차시 전체로 보면 한 벌이므로 '수업 슬라이드' 하나로 접는다.
+    쪽수도 같은 이유로 뗀다 — 떼지 않으면 `교과서 76쪽 · 교과서 77~78쪽 · 교과서 78쪽` 처럼
+    같은 물건이 세 번 실린다. 쪽수는 머리표의 '교과서' 칸과 활동별 ★ 에 이미 있다.
     """
     seen: list[str] = []
     slides = False
@@ -98,7 +100,7 @@ def all_materials(plan: dict) -> list[str]:
             if m.startswith("슬라이드"):
                 slides = True
                 continue
-            m = re.sub(r"\s*[0-9]+~[0-9]+쪽$", "", m).strip()
+            m = re.sub(r"\s*[0-9]+(~[0-9]+)?쪽$", "", m).strip()
             if m and m not in seen:
                 seen.append(m)
     return (["수업 슬라이드"] if slides else []) + seen
@@ -121,10 +123,18 @@ def activity_cell(activity: dict) -> str:
 
 
 def materials_cell(activity: dict) -> str:
-    """다섯째 열 '자료(★)·유의점(※)' 한 칸."""
-    out = [f"★{m}" for m in activity.get("materials", [])]
-    out += [f"※{c}" for c in activity.get("cautions", [])]
+    """다섯째 열 '자료(★)·유의점(※)' 한 칸.
+
+    표기 기호는 렌더러가 붙인다. 데이터가 이미 `★`·`※` 를 달고 오면 `※★ …` 처럼 두 번
+    찍히므로 앞머리에서 떼어 낸다 — 기호의 출처는 여기 한 곳뿐이어야 한다.
+    """
+    out = [f"★{_unmark(m)}" for m in activity.get("materials", [])]
+    out += [f"※{_unmark(c)}" for c in activity.get("cautions", [])]
     return "\n".join(out)
+
+
+def _unmark(text: str) -> str:
+    return re.sub(r"^[★※\s]+", "", text).strip()
 
 
 def process_rows(plan: dict) -> list[tuple[str, str, str, str, str]]:
