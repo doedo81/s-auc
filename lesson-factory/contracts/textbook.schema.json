@@ -9,6 +9,10 @@
 
   "properties": {
     "$comment": { "type": "string" },
+    "$source_files": {
+      "type": "string",
+      "description": "이 등록부를 채울 때 읽은 파일들. 나중에 다시 대조하려면 어디를 열어야 하는지."
+    },
     "$status": {
       "type": "string",
       "description": "이 파일이 지금 어디까지 채워졌는지 사람 말로. 등록부는 늘 미완성이므로, 어디까지 믿을 수 있는지를 파일 안에 적어 둔다."
@@ -38,6 +42,28 @@
         "properties": {
           "unit": { "type": "string", "minLength": 1 },
           "sub_unit": { "type": ["string", "null"] },
+
+          "objectives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["text", "verified", "source"],
+              "properties": {
+                "text": { "type": "string", "minLength": 5 },
+                "verified": { "type": "boolean" },
+                "source": { "type": "string", "minLength": 3 }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "verified": { "const": true } }, "required": ["verified"] },
+                  "then": { "properties": { "source": { "pattern": "^(교과서|지도서)" } } }
+                }
+              ]
+            },
+            "description": "**교과서가 인쇄한 소단원 학습목표.** 2026-07-29 교과서 실물 확인 결과, 이 교과서는 차시별 학습목표를 주지 않고 소단원 첫 쪽에 「이 주제를 공부하면」 으로 2개를 준다. 차시별 목표(lessons[].objective)는 그 2개를 차시로 쪼갠 것이므로 선생님이 쓰신 것이고, 여기 있는 것이 교과서 원문이다."
+          },
+
           "standards": {
             "type": "array",
             "items": { "type": "string", "pattern": "^[0-9][가-힣]{1,2}[0-9]{2}-[0-9]{2}$" },
@@ -99,9 +125,9 @@
 
       "allOf": [
         {
-          "$comment": "대조했다고 표시하려면 출처가 교과서여야 한다 — 선생님 자료를 보고 '확인함'이라 적으면 확인이 아니다",
+          "$comment": "대조했다고 표시하려면 **주 출처**가 교과서여야 한다. 첫머리로 보는 이유: '학습지 PDF · 쪽수는 교과서에서 확인' 처럼 꼬리에 '교과서' 를 붙여 통과시키는 길을 막으려는 것이다(실제로 그렇게 샐 뻔했다).",
           "if": { "properties": { "verified": { "const": true } }, "required": ["verified"] },
-          "then": { "properties": { "source": { "pattern": "교과서|지도서" } } }
+          "then": { "properties": { "source": { "pattern": "^(교과서|지도서)" } } }
         }
       ]
     }

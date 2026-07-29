@@ -92,14 +92,41 @@ def test_registry_standards_exist(path: Path) -> None:
 def test_verified_requires_textbook_source() -> None:
     """'대조했다'고 표시하려면 출처가 교과서여야 한다.
 
-    선생님 자료를 보고 '확인함'이라 적으면 확인이 아니다. 지금 사회 등록부는
-    학습지 PDF 에서 옮긴 것이라 전부 verified=false 다.
+    선생님 자료를 보고 '확인함'이라 적으면 확인이 아니다. 지금 사회 등록부의
+    차시 목표는 학습지 PDF 에서 옮긴 것이라 전부 verified=false 다.
+
+    출처의 **첫머리**로 판정한다. 꼬리에 '교과서' 를 붙여 통과시키는 길을 막으려는
+    것이고, 실제로 그렇게 샐 뻔했다 — 쪽수를 교과서로 확인하고 나서 모든 차시의
+    source 뒤에 '쪽수는 교과서 쪽수별 PDF 로 확인' 을 붙였더니 검사가 뚫렸다.
     """
     validator = Draft202012Validator(load(CONTRACTS / "textbook.schema.json"))
     bad = load(REGISTRY / "사회-5-2.json")
     lesson = bad["units"][0]["lessons"][0]
-    lesson["verified"] = True  # source 는 여전히 학습지 PDF
+    assert "교과서" in lesson["source"], "꼬리에 교과서가 들어 있는 상태여야 이 시험이 의미가 있다"
+    lesson["verified"] = True  # 주 출처는 여전히 학습지 PDF
     assert list(validator.iter_errors(bad))
+
+
+def test_교과서_소단원_목표가_대조되어_있다() -> None:
+    """★ 2026-07-29 교과서 실물 확인.
+
+    이 교과서(아이스크림미디어)는 **차시별 학습목표를 주지 않는다.** 소단원 첫 쪽에
+    「이 주제를 공부하면」 으로 2개를 준다. 그래서 차시 목표(lessons[].objective)는
+    선생님이 그 2개를 차시로 쪼갠 것이고, 교과서 원문은 units[].objectives 에 있다.
+    """
+    unit = load(REGISTRY / "사회-5-2.json")["units"][0]
+    objectives = unit["objectives"]
+    assert len(objectives) == 2
+    assert all(o["verified"] for o in objectives), "교과서 76쪽을 직접 읽었으므로 대조 완료다"
+    assert all("교과서 76쪽" in o["source"] for o in objectives)
+    assert "생각에 미친 영향" in objectives[0]["text"]
+    assert "달라진 생활 모습" in objectives[1]["text"]
+
+
+def test_publisher_is_recorded() -> None:
+    """초등 사회는 검정 교과서다 — 출판사가 다르면 쪽수도 단원 구성도 다르다."""
+    data = load(REGISTRY / "사회-5-2.json")
+    assert "아이스크림미디어" in data["publisher"]
 
 
 def test_사회_registry_is_honest_about_coverage() -> None:
@@ -138,7 +165,7 @@ def test_registered_lesson_is_looked_up(plan: dict) -> None:
     registry = textbook_checks.load_registry("사회", 5, 2)
     lesson = textbook_checks.find_lesson(registry, "1/14")
     assert lesson["pages"] == [70, 75]
-    assert lesson["title"] == "단원 열기 — 유교 문화와 조선"
+    assert lesson["title"] == "단원 열기 — 유교 문화 축제에 초대합니다"
 
 
 # --------------------------------------------------- 미대조 → 경고, 대조 → 실패
