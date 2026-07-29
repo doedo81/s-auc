@@ -184,7 +184,14 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "size": { "type": "integer", "minimum": 2, "maximum": 6 },
+        "size": { "type": "integer", "minimum": 2, "maximum": 6, "description": "한 모둠 인원" },
+        "group_count": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "maximum": 12,
+          "description": "우리 반 모둠 수. 담임 확인(2026-07-29): **6개 모둠.** 모둠 배부 인쇄량이 이 수로 정해진다.",
+          "examples": [6]
+        },
         "composition": { "type": ["string", "null"], "description": "예: '이질모둠'" },
         "numbering": { "type": ["string", "null"], "description": "예: '번호 1~4'. 세안의 '1번부터 시계 방향으로' 가 이걸 전제한다" }
       },

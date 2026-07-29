@@ -25,8 +25,8 @@ from jsonschema import Draft202012Validator
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from checks import Problem, has_errors  # noqa: E402
-from checks import cross_checks, plan_checks  # noqa: E402
+from checks import Problem, has_errors, needs_review  # noqa: E402
+from checks import cross_checks, plan_checks, print_checks  # noqa: E402
 from render import sean  # noqa: E402
 
 CONTRACTS = ROOT / "contracts"
@@ -401,6 +401,90 @@ def test_worksheet_now_covers_the_활동지_gap(plan: dict) -> None:
     실물 학습지 PDF 를 찾아 넣으면서 경고가 사라졌다 — 경고가 옳았다는 뜻이다.
     """
     assert plan_checks.check_templated_structure_has_worksheet(plan) == []
+
+
+# ------------------------------------------------------------------ 인쇄량
+#
+# 담임 요구(2026-07-29): "애들한테 나눠줄 때는 최대한 한 장이나 두 장 양면 복사할 수 있게.
+# 더 많으면 나한테 좀 보여줘. 그래야 수정 좀 하고 나눠주게. 안 그러면 인쇄량이 너무 많아지지.
+# 모둠은 여섯 개니까 여섯 모둠한테 나눠줄 때는 다양하게 나눠줄 순 있어."
+
+def test_real_worksheet_fits_one_sheet(plan: dict, worksheet: dict) -> None:
+    """실물 학습지는 한 차시가 한 면이다 (제작 규칙 §3-7)."""
+    assert worksheet["distribution"] == "개인"
+    assert worksheet["pages"] == 1
+    assert print_checks.run_all(plan, worksheet) == []
+
+
+def test_over_two_pages_goes_to_teacher(plan: dict, worksheet: dict) -> None:
+    """★ 개인 배부가 양면 한 장을 넘으면 담임 확인으로 올린다.
+
+    실패가 아니라 review 다. 자를 곳을 정하는 것은 수업을 아는 사람의 판단이고,
+    기계가 임의로 자르면 학습에 필요한 칸이 날아간다. 막지 않고 보여 준다.
+    """
+    bad = copy.deepcopy(worksheet)
+    bad["pages"] = 3
+    problems = print_checks.run_all(plan, bad)
+
+    assert "print_budget" in ids(problems)
+    assert not has_errors(problems)
+    assert needs_review(problems)
+
+
+def test_two_pages_duplex_is_fine(plan: dict, worksheet: dict) -> None:
+    """양면 한 장까지는 그대로 나간다 — 실과 4차시가 이 경우다."""
+    ok = copy.deepcopy(worksheet)
+    ok["pages"] = 2
+    assert print_checks.run_all(plan, ok) == []
+
+
+def test_group_distribution_has_no_page_limit(plan: dict, worksheet: dict) -> None:
+    """모둠 배부는 분량을 조이지 않는다 — 여섯 부만 찍으면 되고, 모둠마다 달라도 된다."""
+    group = copy.deepcopy(worksheet)
+    group["distribution"] = "모둠"
+    group["pages"] = 5
+    assert print_checks.run_all(plan, group) == []
+
+
+def test_sheets_reflect_six_groups(plan: dict, worksheet: dict) -> None:
+    """모둠 수는 담임 확인값 6개. 인쇄량이 실제로 그만큼만 나온다."""
+    assert plan["group_setup"]["group_count"] == 6
+
+    group = copy.deepcopy(worksheet)
+    group["distribution"] = "모둠"
+    assert print_checks.sheets_needed(plan, group, class_size=24)["sheets"] == 6
+
+    personal = print_checks.sheets_needed(plan, worksheet, class_size=24)
+    assert personal["sheets"] == 24
+
+
+def test_duplex_halves_the_paper(plan: dict, worksheet: dict) -> None:
+    """2면을 양면으로 찍으면 종이는 한 장. 이게 '두 장 양면 복사'의 뜻이다."""
+    two = copy.deepcopy(worksheet)
+    two["pages"] = 2
+    assert print_checks.sheets_needed(plan, two, class_size=24)["sheets"] == 24
+
+    two["duplex"] = False
+    assert print_checks.sheets_needed(plan, two, class_size=24)["sheets"] == 48
+
+
+def test_summary_line_is_readable(plan: dict, worksheet: dict) -> None:
+    """담임 승인 카드에 그대로 들어가는 줄."""
+    assert print_checks.summary_line(plan, worksheet, 24) == "개인 24부 × 1면 단면 = 종이 24장"
+
+
+def test_group_count_defaults_to_six(worksheet: dict) -> None:
+    """지도안에 모둠 수가 없어도 우리 반 기본값 6으로 센다."""
+    bare = {"group_setup": {}}
+    group = copy.deepcopy(worksheet)
+    group["distribution"] = "모둠"
+    assert print_checks.sheets_needed(bare, group, class_size=24)["copies"] == 6
+
+
+def test_unknown_severity_rejected() -> None:
+    """심각도 3단계 밖의 값이 들어오면 즉시 터진다 — 조용히 error 로 취급되면 안 된다."""
+    with pytest.raises(ValueError):
+        Problem("x", "y", severity="치명")
 
 
 def test_docx_builds() -> None:

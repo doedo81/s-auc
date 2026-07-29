@@ -10,7 +10,7 @@ import json
 import re
 from pathlib import Path
 
-from . import Problem
+from . import Problem, print_checks
 
 CONTRACTS = Path(__file__).resolve().parent.parent / "contracts"
 
@@ -304,6 +304,7 @@ def run_all(plan: dict, worksheet: dict, deck: dict | None = None) -> list[Probl
         + check_kagan_roles_satisfied(plan, worksheet)
         + check_worksheet_answers_hidden(worksheet)
         + check_worksheet_skeleton(plan, worksheet)
+        + print_checks.run_all(plan, worksheet)
     )
     if deck is not None:
         problems += check_activity_slide_coverage(plan, deck)

@@ -12,6 +12,26 @@
 
     "title": { "type": "string", "minLength": 1 },
 
+    "distribution": {
+      "type": "string",
+      "enum": ["개인", "짝", "모둠"],
+      "default": "개인",
+      "description": "누구에게 한 부씩 나가는가. 인쇄량이 여기서 갈린다 — 개인 배부는 학급 인원수만큼, 모둠 배부는 모둠 수만큼 찍는다.\n\n담임 결정(2026-07-29): **모둠 배부는 모둠마다 다른 것을 줘도 된다.** 개인 배부만 분량을 조인다."
+    },
+
+    "pages": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "인쇄면 수. **개인 배부는 1면, 많아야 2면(양면 한 장)** 이 원칙이다. 3면 이상이면 검사가 실패시키지 않고 담임 확인으로 올린다 — 자르는 판단은 사람이 한다.\n\n제작 규칙 §3-7 도 같은 말을 한다: '한 차시 = 한 페이지, 여백 없이 꽉 채운다.'"
+    },
+
+    "duplex": {
+      "type": "boolean",
+      "default": true,
+      "description": "양면 인쇄 여부. 2면을 양면으로 찍으면 종이는 한 장이다. ops 계산의 근거."
+    },
+
     "objective": {
       "type": ["string", "null"],
       "description": "🎯 학습 목표. 제작 규칙 §3-1: '학습 목표를 맨 위에 크게 — 학생이 목표를 보고 찾아가 해결하게'. 지도안 objectives[].text 와 같아야 한다."
