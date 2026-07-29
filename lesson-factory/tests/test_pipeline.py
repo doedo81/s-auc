@@ -110,6 +110,90 @@ def test_offline_says_which_file_is_missing(conn, tmp_path) -> None:
         client.call_json(agent="teacher", trace_id="없는차시", prompt="p", payload={})
 
 
+# --------------------------------------------------------- 구독제 경로 (Claude Code)
+
+CC_ENVELOPE = {
+    "is_error": False,
+    "stop_reason": "end_turn",
+    "total_cost_usd": 0.2741,
+    "usage": {"input_tokens": 2, "output_tokens": 15,
+              "cache_creation_input_tokens": 27319, "cache_read_input_tokens": 0},
+    "result": '{"trace_id": "t", "ok": true}',
+}
+
+
+def _fake_run(envelope: dict, returncode: int = 0):
+    import subprocess as sp
+
+    def run(argv, **kwargs):
+        run.argv, run.stdin = argv, kwargs.get("input")
+        return sp.CompletedProcess(argv, returncode, json.dumps(envelope), "")
+    return run
+
+
+def test_claude_code_sends_prompt_as_system_and_payload_as_input(conn, monkeypatch) -> None:
+    """API 경로와 **같은 모양**으로 보낸다 — 시스템에 프롬프트, 사용자에 입력 JSON.
+
+    모양이 갈리면 나중에 API 로 옮길 때 결과가 달라지고, 그러면 지금 검증한 프롬프트
+    품질이 보증되지 않는다.
+    """
+    from core import llm as llm_mod
+
+    fake = _fake_run(CC_ENVELOPE)
+    monkeypatch.setattr(llm_mod.subprocess, "run", fake)
+    monkeypatch.setattr(llm_mod.ClaudeCodeClient, "available", staticmethod(lambda binary="claude": True))
+
+    client = llm_mod.ClaudeCodeClient(config(), conn)
+    reply = client.call_json(agent="teacher", trace_id="T", prompt="너는 교사다", payload={"약안": "원문"})
+
+    assert reply.data["ok"] is True
+    assert "--append-system-prompt" in fake.argv
+    assert fake.argv[fake.argv.index("--append-system-prompt") + 1] == "너는 교사다"
+    assert "--output-format" in fake.argv and "json" in fake.argv
+    assert json.loads(fake.stdin) == {"약안": "원문"}
+
+
+def test_claude_code_records_cli_reported_cost(conn, monkeypatch) -> None:
+    """CLI 가 계산해 준 값을 그대로 적는다.
+
+    우리 단가표로 다시 계산하면 캐시 토큰(호출당 2만 7천쯤)을 빼먹어서 실제와 어긋난다.
+    어긋난 숫자를 기록하느니 CLI 것을 믿는다.
+    """
+    from core import llm as llm_mod
+
+    monkeypatch.setattr(llm_mod.subprocess, "run", _fake_run(CC_ENVELOPE))
+    monkeypatch.setattr(llm_mod.ClaudeCodeClient, "available", staticmethod(lambda binary="claude": True))
+
+    llm_mod.ClaudeCodeClient(config(), conn).call_json(
+        agent="teacher", trace_id="T", prompt="p", payload={})
+
+    row = conn.execute("SELECT * FROM llm_calls WHERE trace_id='T'").fetchone()
+    assert row["cost_usd"] == pytest.approx(0.2741)
+    assert row["cache_write_tokens"] == 27319
+
+
+def test_claude_code_failure_is_not_silent(conn, monkeypatch) -> None:
+    from core import llm as llm_mod
+
+    monkeypatch.setattr(llm_mod.subprocess, "run", _fake_run({"is_error": True, "result": "한도 초과"}))
+    monkeypatch.setattr(llm_mod.ClaudeCodeClient, "available", staticmethod(lambda binary="claude": True))
+
+    with pytest.raises(LLMError, match="한도 초과"):
+        llm_mod.ClaudeCodeClient(config(), conn).call_json(
+            agent="teacher", trace_id="T", prompt="p", payload={})
+
+
+def test_backend_auto_prefers_subscription_when_no_api_key(conn, monkeypatch) -> None:
+    """담임은 정액제다. **키가 없다고 실패시키지 않는다** — 구독 경로로 돈다."""
+    import run as run_mod
+
+    monkeypatch.setattr(run_mod.ClaudeCodeClient, "available", staticmethod(lambda binary="claude": True))
+    args = type("A", (), {"offline": False, "backend": "auto"})()
+
+    assert isinstance(run_mod._make_client(config(api_key=None), conn, args), run_mod.ClaudeCodeClient)
+    assert type(run_mod._make_client(config(api_key="sk-x"), conn, args)) is run_mod.Client
+
+
 # ---------------------------------------------------------------- 성취기준 (B-1)
 
 def test_standards_text_comes_from_the_database() -> None:

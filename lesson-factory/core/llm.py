@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import sqlite3
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -168,3 +170,83 @@ class Client:
             raise CostLimitExceeded(
                 f"작업 비용 상한 초과: ${spent:.4f} / ${limit:.4f} (trace={trace_id})"
             )
+
+
+class ClaudeCodeClient(Client):
+    """구독제로 돌리는 길 — Claude Code CLI 를 헤드리스(`claude -p`)로 부른다.
+
+    담임 질문(2026-07-29): *"난 정액제인데 API 키를 꼭 써야 돼?"* 아니다.
+    구독은 Claude Code 사용을 덮고, Claude Code 에는 비대화형 모드가 있다.
+    API 키는 **종량제 별도 청구**라서 구독과 지갑이 다르다.
+
+    보내는 모양은 API 쪽과 같다 — 시스템 자리에 프롬프트, 사용자 자리에 입력 JSON.
+    그래야 나중에 API 로 옮겨도 결과가 달라지지 않는다.
+
+    두 가지는 API 경로와 다르고, 다르다는 것을 알고 써야 한다.
+
+    1. **군더더기 토큰이 붙는다.** Claude Code 자체 시스템 프롬프트가 매 호출에
+       2만 7천 토큰쯤 실린다(실측). 구독제에서는 돈이 아니라 사용량으로 나간다.
+    2. **`total_cost_usd` 는 청구액이 아니라 환산액이다.** 구독제면 실제로 빠져나가는
+       돈이 아니므로, 이 값으로 상한을 걸면 있지도 않은 돈을 세게 된다.
+    """
+
+    CLI_TIMEOUT = 900  # effort high 로 세안 한 편이면 몇 분씩 걸린다
+
+    def __init__(self, config: Config, conn: sqlite3.Connection, *, binary: str = "claude"):
+        super().__init__(config, conn, offline_dir=None)
+        self.binary = binary
+
+    @staticmethod
+    def available(binary: str = "claude") -> bool:
+        return shutil.which(binary) is not None
+
+    def call_json(self, *, agent: str, trace_id: str, prompt: str, payload: dict) -> Reply:
+        self._guard_budget(trace_id)
+
+        if not self.available(self.binary):
+            raise LLMError(f"{self.binary} 를 찾지 못했다. Claude Code 가 설치돼 있어야 한다.")
+
+        argv = [
+            self.binary, "-p", "--output-format", "json",
+            "--model", self.config.model,
+            "--effort", self.config.effort,
+            "--append-system-prompt", prompt,
+        ]
+        try:
+            proc = subprocess.run(
+                argv,
+                input=json.dumps(payload, ensure_ascii=False, indent=2),
+                capture_output=True, text=True, timeout=self.CLI_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise LLMError(f"{self.CLI_TIMEOUT}초 안에 끝나지 않았다 (trace={trace_id})") from exc
+
+        if proc.returncode != 0:
+            raise LLMError(f"claude -p 실패 (exit {proc.returncode}): {proc.stderr.strip()[:400]}")
+
+        try:
+            envelope = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            raise LLMError(f"claude -p 출력이 JSON 이 아니다: {proc.stdout[:300]!r}") from exc
+
+        if envelope.get("is_error"):
+            raise LLMError(f"claude -p 오류: {envelope.get('result', '')[:400]}")
+
+        usage = envelope.get("usage", {})
+        in_tokens = int(usage.get("input_tokens", 0))
+        out_tokens = int(usage.get("output_tokens", 0))
+        # CLI 가 계산해 준 값을 그대로 쓴다. 우리 단가표로 다시 계산하면 캐시 토큰을
+        # 빼먹어서 실제와 어긋난다 — 어긋난 숫자를 기록하느니 CLI 것을 믿는다.
+        cost = envelope.get("total_cost_usd")
+
+        db.record_llm_call(
+            self.conn,
+            trace_id=trace_id, agent=agent, model=self.config.model, effort=self.config.effort,
+            in_tokens=in_tokens, out_tokens=out_tokens,
+            cache_write_tokens=int(usage.get("cache_creation_input_tokens", 0)),
+            cache_read_tokens=int(usage.get("cache_read_input_tokens", 0)),
+            cost_usd=cost, stop_reason=envelope.get("stop_reason"),
+        )
+
+        return Reply(extract_json(envelope.get("result", "")), in_tokens, out_tokens, cost,
+                     envelope.get("stop_reason"))

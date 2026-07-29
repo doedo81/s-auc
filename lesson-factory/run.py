@@ -31,16 +31,39 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from agents import teacher                              # noqa: E402
 from checks import has_errors, needs_review             # noqa: E402
 from core import config as config_mod, db as db_mod     # noqa: E402
-from core.llm import Client, CostLimitExceeded, LLMError  # noqa: E402
+from core.llm import ClaudeCodeClient, Client, CostLimitExceeded, LLMError  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent
 
 
-def _report(result: teacher.Result, cfg, conn, trace_id: str) -> None:
+def _make_client(cfg, conn, args):
+    """어떤 길로 부를지 고른다.
+
+    담임은 정액제다(2026-07-29 *"난 정액제인데 API 키를 꼭 써야 돼?"*).
+    **API 키는 종량제 별도 청구**라서 구독과 지갑이 다르다 — 구독을 쓰려면
+    Claude Code CLI 를 헤드리스로 부르는 쪽이 맞다. 그래서 기본값은
+    '키가 있으면 API, 없으면 Claude Code' 다.
+    """
+    if args.offline:
+        return Client(cfg, conn, offline_dir=ROOT / "tests" / "cassettes")
+    if args.backend == "api":
+        return Client(cfg, conn)
+    if args.backend == "claude-code":
+        return ClaudeCodeClient(cfg, conn)
+    if cfg.api_key:
+        return Client(cfg, conn)
+    if ClaudeCodeClient.available():
+        print("ℹ️  API 키가 없어 Claude Code CLI 로 돈다 (구독제). --backend api 로 바꿀 수 있다.")
+        return ClaudeCodeClient(cfg, conn)
+    raise SystemExit("❌ API 키도 없고 claude CLI 도 없다. 둘 중 하나는 있어야 한다.")
+
+
+def _report(result: teacher.Result, cfg, conn, trace_id: str, client=None) -> None:
     """담임이 읽는 요약. **침묵 금지** — 잘 됐든 안 됐든 한 줄은 남긴다 (C-5)."""
     spent = db_mod.spent_usd(conn, trace_id)
     print(f"\n━━ {trace_id} ━━")
-    print(f"호출 {result.attempts}회 · 비용 ${spent:.4f}" + (
+    label = "환산액(구독제면 실제 청구 아님)" if isinstance(client, ClaudeCodeClient) else "비용"
+    print(f"호출 {result.attempts}회 · {label} ${spent:.4f}" + (
         f" (상한 ${cfg.cost_limit_usd:.4f})" if cfg.cost_limit_usd is not None
         else "  ⚠️ 비용 상한 없음 — .env 의 USD_KRW 가 비어 있어 원화 상한을 달러로 옮기지 못했다"
     ))
@@ -73,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--standards", nargs="+", required=True, help="성취기준 코드 (DB에 실재해야 한다)")
     ap.add_argument("--previous-preview", default=None, help="직전 차시의 차시 예고 (도입에서 이어 받는다)")
     ap.add_argument("--offline", action="store_true", help="LLM 없이 tests/cassettes/ 녹음본으로 돌린다")
+    ap.add_argument("--backend", choices=["auto", "claude-code", "api"], default="auto",
+                    help="auto = API 키가 있으면 API, 없으면 Claude Code CLI(구독제)")
     ap.add_argument("--write", action="store_true", help="실제로 파일을 쓴다 (기본은 dry_run)")
     ap.add_argument("--out", type=Path, default=ROOT / "artifacts")
     args = ap.parse_args(argv)
@@ -91,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"❌ 입력을 만들지 못했다: {exc}", file=sys.stderr)
         return 2
 
-    client = Client(cfg, conn, offline_dir=(ROOT / "tests" / "cassettes") if args.offline else None)
+    client = _make_client(cfg, conn, args)
 
     try:
         result = teacher.generate(client, trace_id=trace_id, payload=payload,
@@ -102,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result.missing_materials = mats.missing
     result.sources = mats.found
-    _report(result, cfg, conn, trace_id)
+    _report(result, cfg, conn, trace_id, client)
 
     if not result.ok:
         print(f"\n❌ {result.attempts}회 시도 후에도 검사를 통과하지 못했다 → ESCALATED (B-6)", file=sys.stderr)
