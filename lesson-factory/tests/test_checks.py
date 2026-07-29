@@ -54,9 +54,21 @@ def ids(problems: list[Problem]) -> set[str]:
 # ------------------------------------------------------------ 픽스처 전부 통과
 
 @pytest.mark.parametrize("trace", ALL_TRACES)
-def test_plan_checks_clean(trace: str) -> None:
+def test_plan_checks_have_no_errors(trace: str) -> None:
     problems = plan_checks.run_all(load("plan", trace), DB if DB.exists() else None)
-    assert problems == [], [str(p) for p in problems]
+    assert not has_errors(problems), [str(p) for p in problems]
+
+
+@pytest.mark.parametrize("trace", ALL_TRACES)
+def test_unregistered_textbook_only_warns(trace: str) -> None:
+    """이 두 픽스처는 교과서 등록부에 없다 — 실과는 과목째로, 사회 9차시는 차시가.
+
+    경고까지만 내는 것이 설계다. 담임이 "지금은 사회 교과서만 있는데 계속 보충해줄게"
+    라고 했으므로, 없는 것을 실패로 만들면 다른 과목을 시작할 수 없다.
+    """
+    problems = plan_checks.run_all(load("plan", trace), DB if DB.exists() else None)
+    assert any(p.check == "textbook" for p in problems)
+    assert not has_errors(problems)
 
 
 @pytest.mark.parametrize("trace", ALL_TRACES)

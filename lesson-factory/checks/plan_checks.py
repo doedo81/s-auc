@@ -7,7 +7,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from . import Problem
+from . import Problem, textbook_checks
 
 CONTRACTS = Path(__file__).resolve().parent.parent / "contracts"
 
@@ -331,6 +331,7 @@ def run_all(plan: dict, db_path: Path | None = None) -> list[Problem]:
         + check_competition_policy(plan)
         + check_slide_ranges(plan)
         + check_templated_structure_has_worksheet(plan)
+        + textbook_checks.run_all(plan)
     )
     if db_path is not None:
         problems += check_standards_exist(plan, db_path)

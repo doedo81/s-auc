@@ -194,6 +194,52 @@ N차시 · <제목>              📖교과서 ○~○쪽
 모둠  6부 × 3면 양면 = 종이 12장
 ```
 
+## 교과서 학습목표를 유일한 출처로 (2026-07-29)
+
+담임 요구: **"교과서 학습목표 일치시키고. 지금은 사회 교과서만 있는데 계속 보충해줄게."**
+
+지금까지 학습목표의 출처는 약안·세안이었다. 둘 다 선생님이 쓰신 것이라 교과서가 인쇄한
+목표와 어긋날 수 있고, **어긋나도 알 방법이 없었다.** 성취기준을 NCIC DB 로 고정한 것과
+같은 이유로 교과서 목표도 고정한다 — `curriculum/textbook/<과목>-<학년>-<학기>.json`.
+
+| 상태 | 검사 | 왜 |
+|---|---|---|
+| **미등록** | ⚠️ 경고 | 사회 말고는 아직 없다. 없는 것을 실패로 만들면 다른 과목을 시작할 수 없고, 그러면 **등록부를 지어내서 채우게 된다** |
+| **등록 · 미대조** (`verified: false`) | ⚠️ 경고 | 선생님 자료에서 옮긴 값이라 교과서 원본이 아니다 |
+| **등록 · 대조완료** (`verified: true`) | ❌ 실패 | 교과서를 펴서 확인한 값과 어긋나면 지도안이 틀린 것이다 |
+
+`verified: true` 로 표시하려면 `source` 가 교과서·지도서여야 한다 — **선생님 자료를 보고
+'확인함'이라 적는 것은 확인이 아니다.** 스키마가 막는다.
+
+성취기준에서 이미 겪은 일이다. 학기계획표에 *"웹 확인, 총론 대조 예정"* 이라고 적혀 있던
+5개가 나중에 NCIC 원본과 전부 일치했다. 대조 전과 후를 구분해 두지 않으면 그 확인이
+있었는지 알 수 없게 된다.
+
+### 성취기준 DB 가 못 잡던 구멍이 메워졌다
+
+`test_existing_but_wrong_standard_is_NOT_caught` 가 기록해 둔 한계 — **코드가 실재하는가**와
+**그 코드가 이 수업에 맞는가**는 다른 질문이고, 후자는 DB 로 못 잡았다.
+
+교과서 등록부는 *이 차시가 어느 소단원인가*를 알고 있으므로, 같은 사회 과목 안에서 엉뚱한
+단원의 코드를 붙인 것도 잡아낸다.
+
+```
+❌ [textbook_standards] 1/14 차시는 '2-1 유교 문화의 영향으로 달라진 조선 사회' 이고
+   성취기준이 ['6사05-01'] 인데 지도안은 ['6사05-02'] 를 씀
+```
+
+### 첫 수확 — 학습목표 3중 정렬
+
+검사를 붙이자마자 실물 불일치가 나왔다.
+
+| 문서 | 문구 |
+|---|---|
+| 세안 머리표 | …알고**, 단원** 탐구 질문을 만들 수 있다. |
+| 약안 · 학습지 PDF | …알고 탐구 질문을 만들 수 있다. |
+
+두 곳이 일치하는 쪽으로 통일했다. 이제 **지도안 · 활동지 · 교과서 등록부** 셋이 같은 문장을 쓴다.
+검사는 그대로 남겨 뒀다 — 다시 어긋나면 다시 잡힌다.
+
 ## 교과서 대체 정책
 
 **학습목표 도달이 유일한 기준이다.** 교과서 활동을 그대로 쓸 의무는 없고,
@@ -218,20 +264,23 @@ contracts/     계약 — 이 프로젝트의 심장
   verdict.schema.json        검수 결과
   kagan_structures.json      케이건 23종 + 항목 역할 + 학생용 구조 카드 10종
   era_palettes.json          시대별 팔레트 5종 (담임 확정)
+  textbook.schema.json       교과서 등록부 형식
   rubric.md                  LLM 검수 루브릭 R1~R8
 checks/        기계 검증 — LLM 호출 없음
   plan_checks.py             지도안 단독 (세안 검사 포함)
   cross_checks.py            지도안↔활동지↔슬라이드 교차
   print_checks.py            인쇄량 — 나눠 줄 수 있는 분량인가
+  textbook_checks.py         교과서 대조 — 학습목표·쪽수·소단원 성취기준
 render/        문서 조판
   sean.py                    표기 규약의 단일 출처 (의존성 없음)
   sean_docx.py               세안 .docx
 agents/prompts/
   teacher_sean.md            약안 + 교과서 → 세안 JSON
   reviewer.md                산출물 + 루브릭 → Verdict JSON
-curriculum/    성취기준
+curriculum/    성취기준 · 교과서
   source/*.xlsx              NCIC 2022 원본 (커밋됨)
   standards.sqlite           시드 결과 (gitignore)
+  textbook/사회-5-2.json      교과서 차시별 학습목표·쪽수 (담임이 보충)
 scripts/seed_standards.py    xlsx → sqlite
 tests/         계약·검증 테스트
 CLAUDE.md      프로젝트 규칙 헌법 — 모든 AI 작업자 필독
@@ -247,7 +296,7 @@ pip install -r requirements.txt
 
 python3 scripts/seed_standards.py          # NCIC xlsx → sqlite (611개, 멱등)
 python3 scripts/seed_standards.py --check 6사05-02   # 코드 하나 조회
-python3 -m pytest tests/ -q                # 116개 통과 — LLM 호출 0회, 비용 0원
+python3 -m pytest tests/ -q                # 138개 통과 — LLM 호출 0회, 비용 0원
 python3 -m pytest tests/ -q -k drift       # 드리프트 검출만
 
 # 세안 보기 (dry_run — 화면에만 출력)

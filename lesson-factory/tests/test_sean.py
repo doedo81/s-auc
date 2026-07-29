@@ -363,17 +363,16 @@ def test_closing_sentence_drift_detected(plan: dict, worksheet: dict) -> None:
     assert has_errors(problems)
 
 
-def test_objective_wording_drift_only_warns(plan: dict, worksheet: dict) -> None:
-    """★ 실물에서 검출된 드리프트.
+def test_objective_now_aligned_across_documents(plan: dict, worksheet: dict) -> None:
+    """★ 담임 지시로 정렬된 것 (2026-07-29 "교과서 학습목표 일치시키고").
 
-    세안 머리표는 '…알고, **단원** 탐구 질문을' 이고 약안·학습지는 '…알고 탐구 질문을' 이다.
-    낱말 하나 차이라 수업은 그대로 굴러가므로 경고로 둔다 —
-    쉼표까지 실패시키면 선생님이 도구와 쉼표 싸움을 하게 된다.
+    원본 세안 머리표는 '…알고, **단원** 탐구 질문을' 이었고 약안·학습지는
+    '…알고 탐구 질문을' 이었다. 검사가 이 차이를 잡아냈고, 두 곳이 일치하는 쪽으로
+    통일했다. 이제 지도안 · 활동지 · 교과서 등록부 셋이 같은 문장을 쓴다.
     """
-    problems = cross_checks.check_worksheet_skeleton(plan, worksheet)
-    assert "worksheet_skeleton" in ids(problems)
-    assert not has_errors(problems)
-    assert any("단원 탐구 질문" in p.message for p in problems)
+    assert plan["objectives"][0]["text"] == worksheet["objective"]
+    assert "단원 탐구" not in plan["objectives"][0]["text"]
+    assert cross_checks.check_worksheet_skeleton(plan, worksheet) == []
 
 
 def test_punctuation_difference_is_not_drift(plan: dict, worksheet: dict) -> None:
@@ -383,6 +382,15 @@ def test_punctuation_difference_is_not_drift(plan: dict, worksheet: dict) -> Non
         "학습 목표 문구가 다름" in p.message
         for p in cross_checks.check_worksheet_skeleton(plan, ok)
     )
+
+
+def test_objective_wording_drift_still_detected(plan: dict, worksheet: dict) -> None:
+    """정렬했다고 검사를 치우지 않는다 — 다시 어긋나면 다시 잡혀야 한다."""
+    bad = copy.deepcopy(worksheet)
+    bad["objective"] = "유교 문화가 조선 사람들의 생활에 영향을 주었음을 알고, 단원 탐구 질문을 만들 수 있다."
+    problems = cross_checks.check_worksheet_skeleton(plan, bad)
+    assert "worksheet_skeleton" in ids(problems)
+    assert not has_errors(problems)
 
 
 def test_skeleton_absence_only_warns(plan: dict, worksheet: dict) -> None:
