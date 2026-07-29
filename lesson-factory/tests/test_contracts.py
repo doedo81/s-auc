@@ -197,7 +197,7 @@ def test_rejects_verdict_fail_without_fix() -> None:
         "attempt": 1,
         "checks": [
             {"id": f"R{i}", "pass": True, "evidence": "산출물에서 해당 대목을 확인함"}
-            for i in range(1, 8)
+            for i in range(1, 9)
         ],
         "verdict": "PASS",
     }
@@ -281,6 +281,22 @@ def test_kagan_required_roles_exist() -> None:
     for s in kagan["structures"]:
         missing = set(s["required_item_roles"]) - declared
         assert not missing, f"{s['id']} 가 정의되지 않은 역할을 요구함: {missing}"
+
+
+def test_rubric_headings_match_verdict_enum() -> None:
+    """루브릭에 항목을 추가하고 verdict 스키마를 안 고치면, 검수자가 8개를 판정해도
+    7개만 받는 사태가 난다. 반대면 검수자가 무엇을 판정해야 할지 모르는 칸이 생긴다."""
+    import re
+
+    rubric = (CONTRACTS / "rubric.md").read_text(encoding="utf-8")
+    headings = re.findall(r"^## (R[0-9]+) — ", rubric, flags=re.MULTILINE)
+
+    schema = load(CONTRACTS / "verdict.schema.json")
+    items = schema["properties"]["checks"]
+    enum = items["items"]["properties"]["id"]["enum"]
+
+    assert headings == enum, f"루브릭 {headings} ≠ 스키마 {enum}"
+    assert items["minItems"] == items["maxItems"] == len(enum)
 
 
 def test_era_enum_matches_palettes() -> None:

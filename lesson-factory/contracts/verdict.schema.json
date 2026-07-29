@@ -19,15 +19,15 @@
 
     "checks": {
       "type": "array",
-      "minItems": 7,
-      "maxItems": 7,
-      "description": "contracts/rubric.md 의 R1~R7. 전부 채워야 한다 — 일부만 보고 판정하지 않는다.",
+      "minItems": 8,
+      "maxItems": 8,
+      "description": "contracts/rubric.md 의 R1~R8. 전부 채워야 한다 — 일부만 보고 판정하지 않는다.",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["id", "pass", "evidence"],
         "properties": {
-          "id": { "type": "string", "enum": ["R1", "R2", "R3", "R4", "R5", "R6", "R7"] },
+          "id": { "type": "string", "enum": ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"] },
 
           "pass": { "type": "boolean" },
 

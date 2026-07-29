@@ -2,8 +2,9 @@
 
 초등 수업 자료(지도안 · 활동지 · 슬라이드) 제작 파이프라인.
 
-> **현재 상태: P0 (계약 정의) 거의 완료.** 아직 자동 생성은 하지 않는다.
-> 스키마 · 성취기준 DB · 기계 검증기까지 만들어졌고, 에이전트와 오케스트레이터는 P2에서 붙인다.
+> **현재 상태: P1 (세안 생성) 진행 중.** 아직 LLM 을 호출하지 않는다.
+> 스키마 · 성취기준 DB · 기계 검증기 · **세안 렌더러** · 프롬프트 2종까지 만들어졌고,
+> 오케스트레이터는 P2에서 붙인다.
 
 ---
 
@@ -50,6 +51,46 @@
 - **고른 구조가 요구하는 활동지 칸이 실제로 있는지 검사한다** — 이름만 붙은 협동을 잡아낸다
   예: `생각-쓰기-짝-비교`는 `개인쓰기` 칸이 없으면 비교할 산출물이 없어 성립하지 않는다
 
+## 약안이 아니라 세안 (2026-07-29 방향 전환)
+
+담임 판정: **"약안 말고 세안으로 짜줘. 약안은 게임 내용을 모르겠더라."**
+
+실측으로 확인했다. 같은 1차시 게임을 두 문서가 이렇게 적는다.
+
+| | 게임 설명 |
+|---|---|
+| 약안 | `'유교 문화 축제에서 동생 찾기' 미션 — 단원 그림 단서로 추측` (**26자**) |
+| 세안 | 동생 이름 **태웅이** · 단서는 **가족 4명의 말** · 답은 **어느 체험관** ·<br>절차 ①문장틀로 쓰기 → ②시계 방향으로 넘기기 → ③친구 답에 더하기 |
+
+약안에는 T/S 발화가 **0줄**, 평가·판서·유의점이 전부 없다. 세안에는 T 9줄·S 7줄이 있다.
+게다가 **시간이 안 맞는다** — 약안 4+12+12+8=36분, 세안 5+12+15+8=40분.
+`check_minutes_sum` 이 약안 쪽을 잡는다. 검사가 실물에서 작동한다는 증거다.
+
+그래서 지도안 스키마를 **세안 7개 절의 인코딩**으로 다시 짰다.
+
+| 세안의 절 | 스키마 |
+|---|---|
+| 머리표 10칸 | `meta.lesson_title` · `meta.teacher_guide_pages` · `meta.sub_unit_period` · `teaching_model` · `social_skill` |
+| 본시 과정 표 5열 | `activities[].stage_label` · `learning_content` · **`blocks[]`** · `minutes` · `materials`+`cautions` |
+| 게임 | **`activities[].game`** |
+| 평가 계획 | `assessment.observations[]` — `scale` 로 상/중/하 · 도달3 둘 다 |
+| 판서 계획 | **입력하지 않는다.** 본문에서 파생 (`render/sean.py::board_plan`) |
+| 지도상의 유의점 | `guidance_notes[]` |
+
+### 게임을 굴릴 수 있는가 — 기계가 보는 것
+
+| 검사 | 잡는 것 |
+|---|---|
+| `game_runnable` | 절차만 있고 문장틀도 교사 대사도 없음 → 게임이 아니라 게임 이름 |
+| `game_materials` | 게임 준비물이 자료 목록에 없음 → **실물 세안이 실제로 놓쳤다** (단서 종이) |
+| `competition_policy` | '순위 금지'라 써 놓고 순위를 공개하는 게임 |
+| `dialogue` | 교사 발화가 한 줄도 없음 / **절반만 세안** |
+| `slide_range` | 슬라이드 배정이 겹치거나 빔 |
+
+`scoring` 과 `win_condition` 은 **일부러 선택**이다. 실물 활동1이 비워 두었고
+(*※정답 찾기보다 "그림 속 유교 문화 요소 발견"이 목적*), 억지로 요구하면 확산적 활동이
+정답 맞히기로 변질된다. 대신 **읽고 굴릴 수 있는가**는 LLM 검수 R8 이 본다.
+
 ## 교과서 대체 정책
 
 **학습목표 도달이 유일한 기준이다.** 교과서 활동을 그대로 쓸 의무는 없고,
@@ -72,12 +113,18 @@ contracts/     계약 — 이 프로젝트의 심장
   worksheet.schema.json      활동지
   slide_deck.schema.json     슬라이드
   verdict.schema.json        검수 결과
-  kagan_structures.json      케이건 19종 + 항목 역할 요구사항 + 템플릿 유무
+  kagan_structures.json      케이건 22종 + 항목 역할 요구사항 + 템플릿 유무
   era_palettes.json          시대별 팔레트 5종 (담임 확정)
-  rubric.md                  LLM 검수 루브릭 R1~R7
+  rubric.md                  LLM 검수 루브릭 R1~R8
 checks/        기계 검증 — LLM 호출 없음
-  plan_checks.py             지도안 단독
+  plan_checks.py             지도안 단독 (세안 검사 포함)
   cross_checks.py            지도안↔활동지↔슬라이드 교차
+render/        문서 조판
+  sean.py                    표기 규약의 단일 출처 (의존성 없음)
+  sean_docx.py               세안 .docx
+agents/prompts/
+  teacher_sean.md            약안 + 교과서 → 세안 JSON
+  reviewer.md                산출물 + 루브릭 → Verdict JSON
 curriculum/    성취기준
   source/*.xlsx              NCIC 2022 원본 (커밋됨)
   standards.sqlite           시드 결과 (gitignore)
@@ -86,7 +133,7 @@ tests/         계약·검증 테스트
 CLAUDE.md      프로젝트 규칙 헌법 — 모든 AI 작업자 필독
 ```
 
-`core/` `agents/` `render/` `bot/` 는 P2 이후에 채운다.
+`core/` `bot/` 와 `agents/` 의 코드는 P2 이후에 채운다. 지금은 프롬프트만 있다.
 
 ## 실행
 
@@ -96,8 +143,13 @@ pip install -r requirements.txt
 
 python3 scripts/seed_standards.py          # NCIC xlsx → sqlite (611개, 멱등)
 python3 scripts/seed_standards.py --check 6사05-02   # 코드 하나 조회
-python3 -m pytest tests/ -q                # 61개 통과 — LLM 호출 0회, 비용 0원
+python3 -m pytest tests/ -q                # 94개 통과 — LLM 호출 0회, 비용 0원
 python3 -m pytest tests/ -q -k drift       # 드리프트 검출만
+
+# 세안 보기 (dry_run — 화면에만 출력)
+python3 -m render.sean_docx tests/fixtures/사회-5-2-2단원-1차시.plan.json
+# 실제 .docx 저장
+python3 -m render.sean_docx tests/fixtures/사회-5-2-2단원-1차시.plan.json --write
 ```
 
 ## 테스트가 확인하는 것
@@ -141,15 +193,23 @@ python3 -m pytest tests/ -q -k drift       # 드리프트 검출만
 남은 미담김 3가지(슬라이드 복수 역할 · 분 단위보다 잘게 쪼갠 시간 · 의도적 결함 예시)는
 수업의 질을 좌우하지 않는다고 보고 스키마를 늘리지 않았다. 근거는 픽스처 README 에 있다.
 
-## 남은 P0
+## 세안 골든 픽스처 — 왕복 확인
 
-- [ ] **케이건 학습지 템플릿 9종 `.docx`** → `render/templates/`
-- [ ] (선택) 실과 3차시도 옮겨 두 번째 실물로 교차 확인
+`tests/fixtures/사회-5-2-2단원-1차시.plan.json` 은 **48차시 중 세안이 존재하는 유일한 차시**
+(`사회_2-1_1차시_세안.docx`)를 개정 스키마로 옮긴 것이다. 문서 → JSON → 문서 왕복에서
+7개 절이 모두 되살아난다.
 
-## 다음 (P1) — 코드가 아니라 프롬프트
+원본과 일부러 다르게 한 곳은 두 군데뿐이며 `tests/fixtures/README.md` 에 적어 두었다.
+그중 하나가 **원본의 실제 누락**이다 — 게임이 '단서 종이'로 굴러가는데 자료 칸에 단서 종이가 없다.
+`test_game_material_omission_detected` 가 원본 상태로 되돌려 검사가 잡는지 확인한다.
 
-약안 md 7개는 이미 48차시를 덮고 있다. P1은 **약안 표 → LessonPlan JSON 변환**이 손으로 되는지
-확인하는 일이다. 한 차시를 골라 프롬프트 3종(교사/보조/검수)으로 완주하고,
-**"내일 이대로 수업 가능"** 판정이 나오면 P2(오케스트레이터)로 넘어간다.
+## 남은 일
+
+- [ ] **2차시를 약안 + 교과서만 주고 새로 생성** — `agents/prompts/teacher_sean.md` 로 첫 LLM 호출
+- [ ] **담임 판정: "내일 이대로 수업 가능"** ← 이것이 진짜 P1 완료 조건.
+      특히 **게임 부분만 따로 읽어도 굴릴 수 있는가**
+- [ ] 구글드라이브 `search_files` · `read_file_content` **승인** — 교과서 쪽 내용과 나머지 약안 6개
+- [ ] 케이건 학습지 템플릿 9종 `.docx` → `render/templates/`
+- [ ] 활동지·슬라이드 프롬프트 (보조강사 2종) — 스키마는 이미 있다
 
 P1을 건너뛰고 자동화하면 나쁜 자료를 대량 생산하는 기계가 된다.
