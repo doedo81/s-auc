@@ -215,12 +215,26 @@ def check_worksheet_answers_hidden(worksheet: dict) -> list[Problem]:
                     )
 
     for item in worksheet["items"]:
-        for mark in _ANSWER_WORDS:
-            if mark in item["prompt"]:
-                problems.append(
-                    Problem("worksheet_answers", f"활동지 항목 {item['id']} 발문에 '{mark}' 가 들어 있음")
-                )
+        for where, text in _printed_item_text(item):
+            for mark in _ANSWER_WORDS:
+                if mark in text:
+                    problems.append(
+                        Problem("worksheet_answers", f"활동지 항목 {item['id']} {where}에 '{mark}' 가 들어 있음")
+                    )
     return problems
+
+
+def _printed_item_text(item: dict) -> list[tuple[str, str]]:
+    """항목에서 **학생 종이에 실제로 인쇄되는** 글자만 모은다.
+
+    `row_labels`·`columns` 를 렌더러가 쓰기 시작하면서(2026-07-29) 정답이 샐 자리가
+    늘었다. 표 첫 칸에 건물 이름을 미리 박아 두는 것은 시간을 아끼는 좋은 일이지만,
+    같은 자리에 덕목을 박으면 활동이 통째로 사라진다. `example` 은 교사용이라 뺀다.
+    """
+    out = [("발문", item["prompt"])]
+    out += [("표 머리", c) for c in item.get("columns") or []]
+    out += [("표 첫 칸", label) for label in item.get("row_labels") or []]
+    return out
 
 
 def check_game_answer_hidden(plan: dict, worksheet: dict) -> list[Problem]:
@@ -242,7 +256,7 @@ def check_game_answer_hidden(plan: dict, worksheet: dict) -> list[Problem]:
         return []
 
     student_text = [
-        *(i["prompt"] for i in worksheet["items"]),
+        *(text for i in worksheet["items"] for _, text in _printed_item_text(i)),
         *(worksheet.get("activity_titles") or []),
         *((worksheet.get("hints") or {}).get(k, "") for k in ("slow", "fast")),
     ]
@@ -253,16 +267,28 @@ def check_game_answer_hidden(plan: dict, worksheet: dict) -> list[Problem]:
 
     problems = []
     for aid, answer in answers:
-        for text in student_text:
-            if answer in text:
+        for fragment in _answer_fragments(answer):
+            leaked = next((t for t in student_text if fragment in t), None)
+            if leaked is not None:
                 problems.append(
                     Problem(
                         "game_answer",
-                        f"활동 {aid} 게임 정답 '{answer}' 이 학생 활동지에 인쇄됨 — 정답은 교사용이다",
+                        f"활동 {aid} 게임 정답 '{fragment}' 이 학생 활동지에 인쇄됨 — 정답은 교사용이다",
                     )
                 )
                 break
     return problems
+
+
+def _answer_fragments(answer: str) -> list[str]:
+    """정답 한 줄을 조각으로 나눈다.
+
+    정답은 보통 `흥인지문 인(어짊) · 돈의문 의(의로움) · …` 처럼 한 줄에 여럿이 들어간다.
+    통째로만 대조하면 한 조각만 활동지로 새어 나갔을 때 놓친다 — 그리고 실제로 새는
+    쪽은 언제나 한 조각이다.
+    """
+    parts = [p.strip() for p in re.split(r"\s*·\s*", answer) if p.strip()]
+    return parts if len(parts) > 1 else [answer]
 
 
 def _normalize_text(s: str) -> str:
